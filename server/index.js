@@ -38,7 +38,8 @@ app.post("/api/generate", async (req, res) => {
 // ===== SERVE FRONTEND =====
 app.use(express.static(path.join(__dirname, "../dist")));
 
-app.get("/*", (req, res) => {
+// Catch-all fallback (Express 5 safe)
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
