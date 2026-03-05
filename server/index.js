@@ -101,12 +101,14 @@ app.post("/api/log", (req, res) => {
     const entry = {
       timestamp:     new Date().toISOString(),
       theme:         req.body.theme        || "",
+      submittedBy:   req.body.submittedBy  || "Unknown",
       seasonName:    req.body.seasonName   || "",
       confidence:    req.body.confidence   ?? null,
       seasonPass:    req.body.seasonPass   || "",
       newCardsCount: req.body.newCardsCount ?? 0,
       variantCount:  req.body.variantCount  ?? 0,
       wishlistCount: req.body.wishlistCount ?? 0,
+      roster:        req.body.roster       || [],
     };
     searchLogs.push(entry);
     saveLogsToFile();
@@ -162,15 +164,29 @@ app.get("/logs", (req, res) => {
   const confColor = (c) => c >= 75 ? "#4ade80" : c >= 50 ? "#facc15" : "#f87171";
   const pw = req.query?.password || "";
 
-  const rows = searchLogs.slice().reverse().map(l => {
+  const rows = searchLogs.slice().reverse().map((l, idx) => {
     const d = new Date(l.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
     const c = l.confidence ?? 0;
+    const rosterId = `roster-${idx}`;
+    const rosterItems = (l.roster || []);
+    const rosterHtml = rosterItems.length
+      ? `<div id="${rosterId}" style="display:none;margin-top:6px;padding:8px;background:#0f172a;border-radius:6px;font-size:11px;line-height:1.8">
+          ${rosterItems.map(r => {
+            const tierColor = r.tier === "Season Pass" ? "#f59e0b" : r.tier === "Series 5" ? "#818cf8" : "#34d399";
+            return `<span style="color:${tierColor};margin-right:4px">[${r.tier}]</span><span style="color:#e2e8f0">${escHtml(r.name)}</span><br>`;
+          }).join("")}
+        </div>
+        <button onclick="var el=document.getElementById('${rosterId}');el.style.display=el.style.display==='none'?'block':'none'" 
+          style="margin-top:4px;font-size:10px;color:#6366f1;background:none;border:none;cursor:pointer;padding:0">
+          ▼ show roster
+        </button>`
+      : "";
     return `<tr>
       <td style="color:#64748b;white-space:nowrap;font-size:12px">${escHtml(d)} PT</td>
+      <td style="font-weight:600;color:#94a3b8;font-size:12px">${escHtml(l.submittedBy || "—")}</td>
       <td style="font-weight:600;color:#818cf8">${escHtml(l.theme)}</td>
-      <td>${escHtml(l.seasonName)}</td>
+      <td>${escHtml(l.seasonName)}<br><div style="font-size:11px;color:#475569">${escHtml(l.seasonPass)}</div>${rosterHtml}</td>
       <td style="color:${confColor(c)};font-weight:700;text-align:center">${c}%</td>
-      <td style="font-size:12px;color:#94a3b8">${escHtml(l.seasonPass)}</td>
       <td style="text-align:center">${l.newCardsCount}</td>
       <td style="text-align:center">${l.variantCount}</td>
       <td style="text-align:center;color:${l.wishlistCount > 0 ? "#fb923c" : "#64748b"}">${l.wishlistCount}</td>
@@ -209,8 +225,8 @@ app.get("/logs", (req, res) => {
     : `<table>
     <thead>
       <tr>
-        <th>Date (PT)</th><th>Theme</th><th>Season Name</th>
-        <th style="text-align:center">Confidence</th><th>Season Pass</th>
+        <th>Date (PT)</th><th>By</th><th>Theme</th><th>Season Name</th>
+        <th style="text-align:center">Confidence</th>
         <th style="text-align:center">New Cards</th><th style="text-align:center">Variants</th>
         <th style="text-align:center">Wishlist</th>
       </tr>
