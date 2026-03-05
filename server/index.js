@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { google } from "googleapis";
 
 const app = express();
 app.use(cors());
@@ -44,13 +45,22 @@ let characterCache = null;
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-async function fetchSheetColumn(sheetId, range, apiKey) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Sheets API error ${res.status} for sheet ${sheetId}`);
-  const data = await res.json();
+function getGoogleAuth() {
+  const credJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+  if (!credJson) throw new Error("No GOOGLE_SERVICE_ACCOUNT env var set");
+  const credentials = JSON.parse(credJson);
+  return new google.auth.GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+  });
+}
+
+async function fetchSheetColumn(sheetId, range) {
+  const auth = getGoogleAuth();
+  const sheets = google.sheets({ version: "v4", auth });
+  const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range });
   // Skip header row, flatten, filter blanks
-  return (data.values || []).slice(1).map(row => row[0]).filter(Boolean);
+  return (response.data.values || []).slice(1).map(row => row[0]).filter(Boolean);
 }
 
 function normalizeName(name) {
@@ -62,15 +72,14 @@ function normalizeName(name) {
 }
 
 async function loadCharacterData() {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    console.warn("[SNAP] No GOOGLE_API_KEY — character data will use frontend fallback.");
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT) {
+    console.warn("[SNAP] No GOOGLE_SERVICE_ACCOUNT — character data will use frontend fallback.");
     return null;
   }
   try {
     const [grantRaw, snapRaw] = await Promise.all([
-      fetchSheetColumn(GRANT_SHEET_ID, GRANT_RANGE, apiKey),
-      fetchSheetColumn(SNAP_SHEET_ID, SNAP_RANGE, apiKey),
+      fetchSheetColumn(GRANT_SHEET_ID, GRANT_RANGE),
+      fetchSheetColumn(SNAP_SHEET_ID, SNAP_RANGE),
     ]);
     const snapNormalized = new Set(snapRaw.map(normalizeName));
     // unusedNewCards = in grant AND not already in SNAP
