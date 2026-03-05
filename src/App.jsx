@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const UNUSED_CHARACTERS = [
   "'Spinner","3-D Man / Charles Chandler","3-D Man / Triathalon / Delroy Garrett","A-Bomb","Aarkus (Vision)","Aaron Davis (Earth-1610)","Abigail Brand","Abominable Snowman","Abyss (Nils Styger)","Acrobat (Spider-Squad)","Adam X","Aegis (Lady Of All Sorrows)","Aegis (Trey Rollins)","Agent Peggy Carter","Agent X","Agent Zero / Maverick","Ahura","Ai Apaec","Ajak Celestia","Al B. Harper","Alaris","Aldrich Killian","Alecto","Aleph","Alexander Pierce","Alicia Masters","Alpha","Amatsu-Mikaboshi / Chaos King","American Dream","American Kaiju","American Panther","Amphibian / Kingsley Rice","Anddar Bal","Andrea Strucker","Android Man","Aneka","Anna Maria Marconi","Anna Watson","Ant-Man I (Hank Pym)","Anti-Man / Conner Sims","Anya Corazon (Earth-982)","Apocryphus","Arachknight (Peter Parker)","Arachne","Arachnoman","Arcade","Archangel","Arclight","Aries / Marcus Lassiter (Lords Of The Zodiac)","Arkon","Armadillo","Aron The Rogue Watcher","Asp","Astra","Astrolabe / Al-Hasan","Astronomer","Atlas","Att-Lass","Aunt May Parker","Avalanche / Dominikos Petrakis","Avatar (Princess Alaisa Ruantha Pethnan)","Avengers","Aya","Ayaman","Ayo","Azazel","Balder The Brave","Bamfs","Banshee","Banyan (Ajay Roy)","Baron Blood","Baron Gregor Russoff","Baron Macabre","Baron Strucker","Battlestar","Beetle I (Abner Jenkins)","Beetle Iii (Janice Lincoln)","Belasco","Belle Thorne","Ben Parker","Ben Urich","Bengal","Benjamin Deeds","Betty Brant","Beyonder","Bi-Beast","Big Bertha (Ashley Crawford)","Big Man","Big Wheel","Biohazard (From New Warriors)","Black Ant (Eric O'Grady)","Black Cat Venom","Black Dwarf","Black King / Sebastian Shaw","Black Mamba","Black Mariah","Black Panther Ii / Shuri","Black Spectre","Black Suit Spider-Man (Peter Parker)","Black Talon","Black Tom","Black Widow 2099","Black Widow Ii (Yelena Belova)","Blacklash","Blackout (Lilin)","Blackout (Marcus Daniels)","Blackwing I (Joseph Manfredi)","Blastaar","Blazing Skull","Blindspot","Bling","Blizzard (Donald Gill)","Blockbuster","Blood Brothers","Blood Spider (Michael Bingham)","Bloodhawk","Bloodlust (Femme Fatales)","Blue Eagle","Blur","Bob Diamond (Sons Of The Tiger)","Bolivar Trask","Bombastic Bag-Man Suit","Bombshell (Lara Baumgartner)","Boom Boom","Boomerang","Box","Brainstorm (Valeria Richards)","Bride Of The Nine Spiders","Brigid O'Reilly","Brood Queen","Brother Royal","Brotherhood Of Badoon","Bruiser","Bruno Carrelli","Brutacus","Brute (Ralph Hutchins)","Bucka / Bucky (Past Life) (Egypt)","Bucky (Past Life) (Middle Ages)","Bulldozer","Butterball","Caesar Cicero","Caledonia (Alysande Stuart)","Callisto","Calypso","Cancer (Lords Of The Zodiac)","Cap-Wolf (Sam Wilson)","Cap-Wolf (Steve Rogers)","Captain America 2099","Captain America I (Steve Rogers)","Captain America Ii (Bucky Barnes)","Captain America Iii (Sam Wilson)","Captain Avalon","Captain Britain","Captain Glory","Captain Marvel I (Mar-Vell)","Captain Marvel Iii (Carol Danvers)","Captain Stacy","Cardinal Raker","Caretaker I (Blood)","Caretaker Ii (Sara)","Carina Walters","Carlie Cooper","Carol Landers","Caroline Le Fay","Carrion (Malcolm Mcbride)","Carrion Crow","Catseye","Cerebra","Ch'Od","Challenger","Champion (Of The Universe) / Tryco Slatterus","Chance","Charlie-27","Chase Stein (Runaways)","Chaste","Chemistro","Cheshire Cat","Chimera","Chipmunk Hunk","Chthon","Citizen V","Clash (Clayton Cole)","Cloud 9","Clown","Coil","Comanche","Condor","Constrictor","Contemplator","Controller","Corsair","Count Nefaria","Coyote","Crimson Dynamo/ Anton Vanko","Crippler","Crossfire","Crush","Crusher Hogan","Cullen Bloodstone","Cyclone","Cynthia Von Doom","Cypher","D'Spayre","Daimon Hellstrom","Dani Moonstar / Mirage / Psyche","Daniel Drumm","Dante (New Alpha Flight)","Daredevil Noir","Dark Phoenix","Dark Raider (Reed Richards)","Darkoth (Desmond Pitt)","Darkstar","Darwin","De'Lila","Dead Aim","Dead Girl","Deadpool Kid","Death Adder","Death Locket","Deathbird","Deathurge","Demogoblin","Demonicus","Designate / Thor Girl (Tarene)","Detroit Steel I (Doug Johnson Iii)","Detroit Steel Ii / Sasha Hammer","Devlor The Deadly","Devos The Devastator","Diablo (Esteban Diablo)","Diamondhead","Dinah Soar","Doc Samson","Doctor Doom (Victor Von Doom)","Doctor Druid","Doctor Faustus (Johann Fennhoff)","Doctor Nemesis","Doctor Octopus 2099","Doctor Spectrum","Doctor Voodoo / Brother Voodoo","Dog Brother #1","Dogpool","Doomstadt","Doop","Doorman (Demarr Davis)","Doyle Dormammu","Dr. Nels Van Adder / Proto-Goblin","Dragonfly","Drexxon","Druid","Druig","Dusk (Peter Parker)","Dust (Sooraya Qadir)","Dwarf King (King Eitri)","Dweller In Darkness","Eden Fesi","Egghead","Electro 2099","Electro Ii / Aftershock (Allison Dillon)","Electron","El Aguila","Elloe Kaifi","Eon","Eternity","Excalibur","Executioner","Exodus","Eye Boy","Falcon Ii (Joaquin Torres)","Fancy Dan","Fandral","Fantastic Four","Fat Cobra","Fatale","Fenris (Group)","Feral","Finesse","Firebird","Firebrand / Gary Gilbert","Fixer","Flag-Smasher","Flash Thompson","Foolkiller","Force (Clayton Wilson)","Franklin Richards","Frost Giants","Fulmina (Sylvia Prell)","Gaea","Ganke Lee","Gardener","Gargoyle","Garokk","Gateway","Gazelle","Gemini (Lords Of The Zodiac)","Ghost Panther (T'Challa)","Ghost Rider 2099 (Kenshiro 'Zero' Cochrane)","Ghost Rider Ii (Johnny Blaze)","Ghost Rider Iv (Robbie Reyes)","Ghost Spider Iii","Giant-Man","Gibbon","Gideon","Glob Herman","Glorian (Thomas Gideon)","Glory Grant","Golden Age Deadpool","Gorilla-Man","Gorr The Godbutcher","Graviton","Gravity","Grey Gargoyle / Paul Duval","Grim Reaper / Eric Williams","Grizzly (Maxwell Markham)","Guardian (Spider-Clone)","Guardian / James Hudson","Gwen Stacy","Gypsy Moth","Hammerhead","Hank Pym","Hannibal King","Hardball","Harpoon","Harry Osborn","Hate-Monger","Hawkeye 2099","Hellcat (Patsy Walker)","Hellphyr","Hellscout","Hepzibah","Hiram Shaw","Hiroim","Hollywood","Hornet (Peter Parker)","Horus","Hulk 2099","Human Cannonball / Jack Pulver","Huntara","Husk","Hussar","Hyperion","Hypno-Hustler","Ikaris (Eternals)","Ikon","Immortus","Impossible Man","Infamous Iron Man (Victor Von Doom)","Invisible Girl (Susan Storm Richards)","Iron Cross (Clare Gruler)","Iron Hammer [Iron Man And Thor]","Iron Monger / Obadiah Stane","Iron Patriot Iii (Toni Ho)","Iron Spider","Ironclad (U-Foes)","Isaac Newton","Iso (Xiaoyi)","J. Jonah Jameson, Sr.","Jack O'Lantern","Jack Of Hearts","Jackal","Jackpot","Jean Dewolff","Jemma Simmons","Jester","Jewel (Jessica Jones)","Jimmy Woo","John Jameson","Justice","Kallark / Gladiator","Kaluu","Kangaroo (Brian Hibbs)","Karma","Karn","Karnak","Karnilla, Queen Of The Norns","Karolina Dean (Runaways)","Kid Colt","Kid Kaiju","Kid Kree / Mel-Varr","Kid Venom","Killer Shrike","Killraven","King Cobra / Klaus Voorhees","Kingo","Korath The Pursuer","Korvac/ Michael Korvac","Kraven The Hunter","Kraven The Hunter (Poison)","Kristoff Vernard","Lady Deadpool","Lady Hellbender","Lady Mandarin (Kwannon) / Revanche","Lady Octopus","Lady Spider","Lash","Lei Kung The Thunderer","Leo (Lords Of The Zodiac)","Leonus","Libra","Lila Cheney","Lilith","Lin Sun (Sons Of The Tiger)","Lineage","Lionfang","Live Wire (Rance Preston)","Living Brain","Living Lightning","Living Mummy, The / N'Kantu","Lockdown (Jomo Kimanye)","Longbow","Longshot","Looter","Lord Chaos","Lord Templar","Lorelei","Lunatik","Lyja (The Laserfist)","M (Monet St. Croix)","M.O.D.A.M.","Mac Gargan","Madame Hydra (Viper)","Madame Masque","Madelyne Pryor","Madison Jeffries","Maelstrom","Maestro","Magma","Man-Beast","Man-Wolf","Mandarin","Mangog","Mania (Andi Benton)","Mania (Symbiote / Kylntar)","Maniac (Lee Price)","Manifold","Manphibian","Marak","Marduk Kurios","Maria Russoff","Maris Morlak","Mastermind (Jason Wyngarde)","Mastermind (Martinique Wyngarde)","Master Hate","Master Order","Matriarch, The","Max Modell","Mayhem (April Parker)","Mechamage","Menace","Mendel Stromm / Robot-Master","Mesmero","Metallo","Mettle","Mimic","Mindworm","Mister Immortal (Craig Hollis)","Mistress Death","Molecule Man (Owen Reece)","Molly Hayes (Runaways)","Molten Man","Morlun","Mosaic","Moses Magnum","Mother Mold","Mr. Hyde","Mr. Joe Fixit","Ms. Marvel I (Carol Danvers)","Ms. Marvel Ii (Kamala Khan)","N'Astirh","Naja","Night Thrasher","Nightfall","Nighthawk / Nightshade / Tilda Johnson","Nightmask","Nightshade","Noh-Varr / Protector","Nomad (Steve Rogers)","Norman Osborn","Northstar","Nova I (Richard Rider)","Nova Ii (Sam Alexander)","Nuke","Obliterator (Interstellar)","Occulus","Old Man Bullseye","Old Man Hawkeye","Original Human Torch (Jim Hammond)","Over-Mind / Grom","Pagan","Paladin","Panda-Mania","Phoenix (1,000,000 Bc)","Piledriver","Pip The Troll","Plunderer","Power Man","Power Princess","Powerhouse (Franklin Richards)","Predator X","Prestige / Rachel Gray","Proteus","Psycho-Man","Puck (New Alpha Flight)","Puma","Puppet Master","Purple Man","Pyro","Quasar","Quasar Ii (Avril Kincaid)","Quentin Quire","Radioactive Man","Ragnarok","Ravenous","Rawhide Kid","Raza Longknife","Raze","Red Ghost (Ivan Kragoff)","Red Goblin","Red Hulk Ii (Robert Maverick)","Red King","Red Onslaught","Red She-Hulk","Red Wolf","Regent (Augustus Roman)","Reptil","Requiem (Gamora)","Reverend Achebe","Rick Jones","Rictor","Riot (Symbiote / Kylntar)","Riptide","Robbie Robertson","Ronin / Clint Barton","Ruby Thursday","S'Byll","Sabra","Satana Hellstrom (Satana)","Satannish","Scarlet Beetle","Scarlet Centurion","Scarlet Samurai","Scarlet Spider Ii (Ben Reilly)","Scarlet Spider Iii (Felicity Hardy)","Scorpia (Elaine Coll)","Screwball","Seeker","Sentinel Prime / Prime Sentinel","Sentinels","Seth","Shaman / Michael Twoyoungmen","Shanna The She-Devil","Shaper Of Worlds","Shatterstar","Shiklah","Shockwave","Shriek (Frances Barrison)","Sigyn","Sikorsky","Silver Dagger","Silvermane","Sin / Sinthea Shmidt","Singularity","Siryn","Slingshot","Slyde","Smythe","Snowbird / Narya","Songbird","Sp//Dr (Peni Parker)","Speed Demon","Speedball","Sphinx","Spider-Boy","Spider-Girl (Anya Corazon)","Spider-Girl (May Parker)","Spider-Man Ii (Miles Morales)","Spider-Man Noir","Spider-Slayer","Spider-Uk","Spiral","Spitfire","Spot (Johnathan Ohnn)","Sprite","Spyder-Knight","Spymaster","Squirrelpool","Steel Serpent","Steel Spider (Ollie Osnick)","Stegron Dino Man (Vincent Stegron)","Stepford Cuckoos / Celeste","Stinger (Cassie Lang)","Stingray","Stone","Striker","Sugar Man","Sun King","Sunfire","Superior Carnage (Karlin Malus)","Superior Doctor Octopus","Supreme Intelligence","Swordsman (Jacques Duquesne)","Synch / Everett Thomas","Talos","Tarantula","Taserface","Taurus (Cornelius Van Lunt)","Techno Golem (Tomoe)","Teen Abomination / Jamie Carlson","Tempus / Chrono Key","Terminatrix / Ravonna Lexus Renslayer","Texas Twister (Drew Daniels)","Thane","The Aged Genghis","The Apocalypse Twins","The Griever","The Hand","The Presence","The Shroud","The Stranger","Thunderball","Thunderbird","Tiger Shark","Tigra","Tinkerer","Titanium Man","Topaz Ii","Torgo","Toro","Tracksuit Mafia / Tracksuit Brothers","Trapster / Paste-Pot Pete (Peter Petruski)","Trickshot / Buck Chisholm","Trinary","Turk Barrett","Two-Gun Kid","U-Go Girl","Ulik","Union Jack","Unus The Untouchable","Vapor / Ann Darnell","Vector / Simon Utrecht","Veil","Venom 2099","Venompool","Victor Mancha","Victor Stein","Victorious","Vin Gonzales","Vindicator","Void","Volstagg","Vox / Maximus Boltagon","Voyager (Valerie Vector)","Vulcan","Wasp I (Janet Van Dyne)","Wasp Ii (Hope Van Dyne)","Wasp Iii (Nadia Pym)","Weapon Hex (Wanda) [Scarlet Witch And X-23]","Weapon X","Wendigo","Whiplash/ Anton Vanko","Whirlwind","White Fox / Ami Han","White Wolf","Whizzer","Wild One","Wiz Kid","Wizard","Wonder Man","Wrecker","Wyatt Wingfoot","X-Cutioner","X-Man (Nate Grey)","X-Ray / James 'Jimmy' Darnell","Xandu","Xarus","Xemnu The Titan","Yellow Claw / Plan Chu","Yon-Rogg","Yotat","Yu-Ti","Yukio","Zadkiel","Zak-Del (Wraith)","Zelma Stanton","Zeus","Zom","Zzzax"
@@ -102,15 +102,20 @@ Return ONLY valid JSON (no markdown fences, no explanation):
   "viabilityNote": null
 }`;
 
-const buildUserPrompt = (theme) => `
+const buildUserPrompt = (theme, unusedChars, snapCards = []) => {
+  const snapContext = snapCards.length > 0
+    ? `\nFor variant suggestions, prioritise characters from this list of known Marvel SNAP cards: ${snapCards.slice(0, 150).join(", ")}.`
+    : "";
+  return `
 Theme: "${theme}"
-Full Unused Character List (${UNUSED_CHARACTERS.length} characters):
-${UNUSED_CHARACTERS.join(", ")}
+Full Unused Character List (${unusedChars.length} characters):
+${unusedChars.join(", ")}
 Produce a complete Marvel SNAP Season Proposal for the theme: "${theme}".
 Only use characters from the list above for new cards. Locations can be any canonical Marvel location.
-Always include variantSuggestions (4-6 existing SNAP cards getting new artwork).
+Always include variantSuggestions (4-6 existing SNAP cards getting new artwork).${snapContext}
 Only populate wishlistCharacters if series5 + series4 total fewer than 8 characters; otherwise return an empty array.
 If insufficient matches exist, set viabilityNote to "Theme not viable with current grant list".`;
+};
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function downloadDataURI(content, filename, mime) {
@@ -182,9 +187,10 @@ function buildSlackMessage(result, theme, confidence) {
 
 async function sendToSlack(result, theme, confidence) {
   const message = buildSlackMessage(result, theme, confidence);
+  const pw = sessionStorage.getItem("snap-auth-pw") || "";
   const res = await fetch("/api/slack", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-app-password": pw },
     body: JSON.stringify({ message, channel: "C07EXLBDDNE" })
   });
   const json = await res.json();
@@ -403,6 +409,16 @@ function ExportPanel({ data, theme, confidence }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("snap-auth") === "1");
+  const [pwInput, setPwInput] = useState("");
+  const [authError, setAuthError] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+
+  // ── Characters (from server / Google Sheets) ───────────────────────────────
+  const [characters, setCharacters] = useState(null);
+
+  // ── Main state ─────────────────────────────────────────────────────────────
   const [theme, setTheme] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -410,7 +426,37 @@ export default function App() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("roster");
 
+  const getAuthPw      = () => sessionStorage.getItem("snap-auth-pw") || "";
+  const getAuthHeader  = () => ({ "x-app-password": getAuthPw() });
+  const unusedChars    = characters?.unusedNewCards || UNUSED_CHARACTERS;
+  const snapCards      = characters?.snapCards || [];
+
   const EXAMPLES = ["Dark Magic","Cosmic War","Street-Level Crime","Symbiote Invasion","Mythology","Time Travel","Young Heroes","Villains of Wakanda"];
+
+  // Fetch character lists after auth
+  useEffect(() => {
+    if (!authed) return;
+    fetch("/api/characters", { headers: getAuthHeader() })
+      .then(r => r.json())
+      .then(json => { if (json.ok && json.data) setCharacters(json.data); })
+      .catch(() => {});
+  }, [authed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAuth = async () => {
+    setAuthBusy(true); setAuthError(false);
+    try {
+      const res = await fetch("/api/auth", { headers: { "x-app-password": pwInput } });
+      const json = await res.json();
+      if (json.ok) {
+        sessionStorage.setItem("snap-auth", "1");
+        sessionStorage.setItem("snap-auth-pw", pwInput);
+        setAuthed(true);
+      } else {
+        setAuthError(true);
+      }
+    } catch { setAuthError(true); }
+    setAuthBusy(false);
+  };
 
   const generate = useCallback(async () => {
     if (!theme.trim()) return;
@@ -418,16 +464,16 @@ export default function App() {
     try {
       const res = await fetch("/api/generate", {
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
+        headers:{ "Content-Type":"application/json", ...getAuthHeader() },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:4500,
           system: SYSTEM_PROMPT,
-          messages:[{ role:"user", content: buildUserPrompt(theme) }]
+          messages:[{ role:"user", content: buildUserPrompt(theme, unusedChars, snapCards) }]
         })
       });
       const json = await res.json();
-      if (json.error) throw new Error(json.error.message);
+      if (json.error) throw new Error(json.error.message || json.error);
       const raw = json.content?.find(b => b.type==="text")?.text || "";
       const clean = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
       const parsed = JSON.parse(clean);
@@ -435,12 +481,28 @@ export default function App() {
       parsed.confidence = computedScore;
       setResult(parsed);
       setConfidence(computedScore);
+      // Log the search (fire-and-forget)
+      try {
+        await fetch("/api/log", {
+          method: "POST",
+          headers: { "Content-Type":"application/json", ...getAuthHeader() },
+          body: JSON.stringify({
+            theme,
+            seasonName:    parsed.seasonName,
+            confidence:    computedScore,
+            seasonPass:    parsed.seasonPass?.name,
+            newCardsCount: 1 + (parsed.series5?.length || 0) + (parsed.series4?.length || 0),
+            variantCount:  parsed.variantSuggestions?.length || 0,
+            wishlistCount: parsed.wishlistCharacters?.length || 0,
+          })
+        });
+      } catch {}
     } catch(e) {
       setError(e.message || "Unknown error.");
     } finally {
       setLoading(false);
     }
-  }, [theme]);
+  }, [theme, unusedChars, snapCards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabBtn = (id, label) => (
     <button key={id} onClick={() => setTab(id)} style={{
@@ -453,6 +515,40 @@ export default function App() {
   const viable = result && !result.viabilityNote?.includes("not viable");
   const hasWishlist = viable && result.wishlistCharacters?.length > 0;
 
+  // ── Password gate ─────────────────────────────────────────────────────────
+  if (!authed) {
+    return (
+      <div style={{ minHeight:"100vh", background:"#020617", color:"#f1f5f9", fontFamily:"'Inter','Segoe UI',sans-serif", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ background:"#0f172a", border:"1px solid #334155", borderRadius:16, padding:40, textAlign:"center", maxWidth:360, width:"100%" }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>⚡</div>
+          <h1 style={{ margin:"0 0 6px", fontSize:22, fontWeight:800, background:"linear-gradient(90deg,#818cf8,#f472b6,#fb923c)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+            MARVEL SNAP Season Generator
+          </h1>
+          <p style={{ color:"#475569", fontSize:12, margin:"0 0 24px" }}>Internal tool · Second Dinner use only</p>
+          <input
+            type="password"
+            value={pwInput}
+            onChange={e => { setPwInput(e.target.value); setAuthError(false); }}
+            onKeyDown={e => e.key === "Enter" && !authBusy && handleAuth()}
+            placeholder="Enter password"
+            autoFocus
+            style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${authError ? "#dc2626" : "#334155"}`, background:"#1e293b", color:"#f1f5f9", fontSize:14, outline:"none", marginBottom:8, boxSizing:"border-box" }}
+          />
+          {authError && <div style={{ color:"#f87171", fontSize:12, marginBottom:8 }}>Incorrect password. Please try again.</div>}
+          <button
+            onClick={handleAuth}
+            disabled={authBusy || !pwInput.trim()}
+            style={{ width:"100%", padding:"12px", borderRadius:10, border:"none", cursor: authBusy ? "not-allowed" : "pointer",
+              background: authBusy ? "#374151" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
+              color:"#fff", fontWeight:700, fontSize:14 }}
+          >
+            {authBusy ? "⏳ Checking…" : "🔐 Enter"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight:"100vh", background:"#020617", color:"#f1f5f9", fontFamily:"'Inter','Segoe UI',sans-serif", padding:24 }}>
       <div style={{ textAlign:"center", marginBottom:28 }}>
@@ -461,7 +557,7 @@ export default function App() {
           MARVEL SNAP Season Generator
         </h1>
         <p style={{ color:"#64748b", margin:"6px 0 0", fontSize:13 }}>
-          AI-powered · Survey-calibrated confidence · Artist recs · Slack integration · {UNUSED_CHARACTERS.length} characters
+          AI-powered · Survey-calibrated confidence · Artist recs · Slack integration · {unusedChars.length} characters
         </p>
       </div>
 
@@ -488,7 +584,7 @@ export default function App() {
       {loading && (
         <div style={{ maxWidth:640, margin:"0 auto", textAlign:"center", padding:40 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
-          <p style={{ color:"#94a3b8" }}>Analyzing {UNUSED_CHARACTERS.length} characters for: <strong style={{ color:"#818cf8" }}>{theme}</strong></p>
+          <p style={{ color:"#94a3b8" }}>Analyzing {unusedChars.length} characters for: <strong style={{ color:"#818cf8" }}>{theme}</strong></p>
           <p style={{ color:"#475569", fontSize:12 }}>Scoring thematic relevance, popularity, synergy, artist fit…</p>
           <div style={{ margin:"20px auto", width:200, height:4, background:"#1e293b", borderRadius:4, overflow:"hidden" }}>
             <div style={{ width:"60%", height:"100%", background:"linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius:4, animation:"slide 1.5s infinite" }} />
@@ -705,7 +801,7 @@ export default function App() {
       )}
 
       <div style={{ textAlign:"center", marginTop:40, color:"#334155", fontSize:11 }}>
-        Marvel SNAP Season Generator v3 · Survey-Calibrated · Variants · Wishlist · Slack · {UNUSED_CHARACTERS.length} Characters
+        Marvel SNAP Season Generator v4 · Survey-Calibrated · Variants · Wishlist · Slack · {unusedChars.length} Characters
       </div>
     </div>
   );
