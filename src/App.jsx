@@ -9,9 +9,10 @@ const SNAP_CARDS = [
   "Abomination","Absorbing Man","Acid Arrow","Adam Warlock","Adamantium Infusion","Aero","Agamotto","Agatha Harkness","Agent 13","Agent Coulson","Agent Venom","Agony","Agony - Spider-Verse","Air-Walker","Ajax","Alioth","America Chavez","Angel","Angela","Annihilus","Annihilus Champion","Ant Man","Anti-Venom","Anti-Venom - Spider-Verse","Apocalypse","Apocalypse, Celestials' Chosen","Arachnid Acrobatics","Araña","Archangel Horseman of Death","Ares","Arishem","Armor","Arnim Zola","Askani'son","Astral Projection","Attuma","Aurora","Awesome Andy","Baron Mordo","Baron Zemo","Basic Arrow","Bast","Bastion","Batroc the Leaper","Beast","Berserker Rage","Beta Ray Bill","Bishop","Black Bolt","Black Cat","Black Knight","Black Panther","Black Panther Champion","Black Swan","Black Widow","Blade","Blink","Blob","Blue Marvel","Bolts of Balthakk","Brand of Shou-Lao","Brood","Broodling","Bruce Banner","Bucky Barnes","Bug","Bullseye","Cable","Caiera","Caliban Horseman of Pestilence","Cannonball","Cap's Shield","Captain America","Captain America Champion","Captain Carter","Captain Marvel","CaptainAmericaAvengers","Carnage","Cassandra Nova","Celestial Empowerment","Cerebro","Chamber","Chameleon","Chimichanga","Clea","Cloak","Clobberin' Time","Cobra","Colleen Wing","Colonel America","Colossus","Copycat","Corvus Glaive","Cosmic Ghost Rider","Cosmo","Council of Reeds","Crossbones","Crystal","Cull Obsidian","Cyclops","Cyclops - X-Men","Dagger","Daken","Danger","Daredevil","Darkhawk","Dazzler","Deadpool","Deafening Chord","Death","Deathlok","Debrii","Demon","Destroyer","Devil Dinosaur","Diamondback","Djinn","Doctor Doom","Doctor Doom 2099","Doctor Octopus","Doctor Strange","DoctorStrange - Avengers","Domino","DoomBot","DoomBot 2099","Dormammu","Dracula","Dragon Breath","Dragon Lord","Dragon Man","Dragon of the Moon","Drax","Drax - Guardians of the Galaxy","Drax, Avatar Of Life","Drone","Dum Dum Dugan","Ebony Blade","Ebony Maw","Echo","Electro","Elektra","Elixir","Elsa Bloodstone","Emperor Hulkling","En Sabah Nur","Enchantress","Esme Cuckoo","Eson","Ezekiel Sims","Falcon","Fan Fei","Fantasticar","Fantomex","Fastball Special","Fenris Wolf","Fin Fang Foom","Firehair","Firelord","Firestar","Flame On","Flames of the Faltine","Flatman","Flight Harness","Foggy Nelson","Force Field","Forge","Frigga","Galacta","Galactus","Galactus First Steps","Gambit","Gambit Horseman of Death","Gamora","Gamora - Guardians of the Galaxy","Garrison Kane","Ghost","Ghost - Thunderbolts","Ghost Rider","Ghost-Spider","Ghost-Spider - Spider-Verse","Giganto","Gilgamesh","Gladiator","Goblin Queen","Goliath","Goose","Gorgon","Gorr the God Butcher","Grand Master","Grapple Arrow","Green Goblin","Groot","Groot - Guardians of the Galaxy","Gwenpool","H.E.R.B.I.E.","Havok","Hawkeye","Hawkeye - Avengers","Hawkeye Kate Bishop","Hazmat","Headpool","Heimdall","Hela","Helicarrier","Hellcow","Hellion","Helpful Assistance","Hercules","High Evolutionary","Hit-Monkey","Hobgoblin","Hope Summers","Howard the Duck","Hulk","Hulk - Avengers","Hulk Smash","Hulkbuster","Human Torch","Human Torch First Steps","Hydra Bob","Hydra Stomper","Hydro-Man","Ice Cube","Iceman","Ikari","Illusion!","Images of Ikonn","Inevitable","Infinity Ultron","Invisible Woman","Invisible Woman First Steps","Iron Fist","Iron Lad","Iron Man","Iron Man Champion","Iron Patriot","Ironheart","Isca the Unbeaten","J. Jonah Jameson","Jack Flag","Jane Foster Mighty Thor","Jean Grey","Jean Grey - X-Men","Jeff the Baby Dolphin!?","Jeff the Baby Land Shark","Jennifer Kale","Jessica Jones","Jim Hammond Human Torch","Joaquin Torres Falcon II","Jocasta","Jubilee","Jubilee - X-Men","Jubilee Silver Surfer","Juggernaut","Juggernaut Horseman of War","Ka-Zar","Kahhori","Kang","Karen Page","Khonshu","Khonshu Full","Khonshu Waxing","Kid Omega","Killmonger","King Eitri","Kingpin","Kitty Pryde","Klaw","Knull","Korg","Kraglin","Kraven","Lady Bullseye","Lady Deathstrike","Lady Deathstrike - Brotherhood of Mutants","Lady Sif","Lasher","Laufey","Leader","Leech","Legion","Lin Lie Iron Fist","Living Monolith","Lizard","Lockheed","Lockjaw","Loki","Lord of the Negative Zone","Luke Cage","Luna Snow","M'Baku","M.O.D.O.K.","Mad Thinker","Madame Web","Magik","Magneto","Magneto - Brotherhood of Mutants","Magus","Majestic Wingbeat","Major Victory","Makkari","Malekith","Man-Spider","Man-Thing","Mantis","Mantis - Guardians of the Galaxy","Maria Hill","Marrow","Martyr","Marvel Boy","Massive Arsenal","Master Mold","Master Plan","Master of Magnetism","Maverick","Maximum Carnage","Maximus","Medusa","Mephisto","Mercury","Merlin","Miek","Miles Morales Spider-Man","Mind Stone","Mirage","Misery","Mister Fantastic","Mister Fantastic First Steps","Mister Negative","Mister Sinister","Misty Knight","Mjolnir","Mjolnir - Avengers","Mobius M. Mobius","Mockingbird","Moira X","Mojo","Mole Man","Monster","Monstro","Moon Girl","Moon Knight","Moondragon","Moonstone","Morbius","Morgan le Fay","Morph","Mother Askani","Ms. Marvel","Multiple Man","Muramasa Shard","Muse","Mysterio","Mysterio?","Mystique","Mystique - Brotherhood of Mutants","Nakia","Namor","Namora","Namorita","Nebula","Negasonic Teenage Warhead","Nicholas Scratch","Nick Fury","Nico Minoru","Night Nurse","Nightcrawler","Nightcrawler - X-Men","Nightmare","Nimrod","Ninja","Nocturne","Nova","Nova Frankie Raye","Odin","Okoye","Omega Red","Omega Sentinel","Omniversal Presence","Once And Future","Onslaught","Orka","Overdrive Reactor","Ozymandias","Patriot","Peni Parker","Phastos","Phoenix Force","Pig","Pixie","Polaris","Polaris Horseman of Pestilence","Polymorph","Power Stone","Prodigy","Professor X","Professor X - X-Men","Project Armageddon","Prowler","Proxima Midnight","Psylocke","Punisher","Punisher War Machine","PymParticle Arrow","Quake","Quicksand","Quicksilver","Quinjet","Rama-Tut","Random","Raptor","Ravonna Renslayer","Reality Stone","Red Guardian","Red Hulk","Red Shift","Red Skull","Redwing","Remote Mines","Rescue","Return to the Past","Rhino","Rock","Rocket Raccoon","Rocket Raccoon - Guardians of the Galaxy","Rocket Raccoon Champion","Rocket and Groot","Rockslide","Rogue","Ronan the Accuser","SP//dr","Sabretooth","Sage","Sam Wilson Captain America","Sandman","Sandstorm","Sasquatch","Sauron","Scarlet Spider","Scarlet Spider - Spider-Verse","Scarlet Spider Clone","Scarlet Witch","Scarlet Witch - Brotherhood of Mutants","Scorn","Scorpion","Scream","Sebastian Shaw","Selene","Selene - Brotherhood of Mutants","Selene Horseman of Famine","Sentinel","Sentinel Champion","Sentry","Sentry - Thunderbolts","Sera","Sersi","Shadow King","Shadowlands Daredevil","Shang-Chi","Shang-Chi, Master of the Rings","Shanna","She-Hulk","Shield Throw","Shocker","Shou-Lao the Undying","Shuri","Silk","Silver Sable","Silver Samurai","Silver Surfer","Silver Surfer First Steps","Sinister Clone","Skaar","Snowguard","Snowguard Bear","Snowguard Hawk","Snowguard Wolf","Soul Stone","Space Stone","Sparky","Spectrum","Speed","Spider-Ham","Spider-Man","Spider-Man 2099","Spider-Man 2099 - Spider-Verse","Spider-Man Noir","Spider-Punk","Spider-Woman","SpiderMan","Squirrel","Squirrel Girl","Star-Lord","Star-Lord, Master of the Sun","Starbrand","Stardust","Starhawk","Stark Technology","Starlord - Guardians of the Galaxy","Stature","Stegron","Stick","Storm","Storm Horseman of Famine","Stormbreaker","Strange Supreme","Strong Guy","Stryfe","Sub-Mariner","Subterranean Summons","Summoning Ritual 1","Summoning Ritual 2","Summoning Ritual 3","Sunspot","Super-Adaptoid","Super-Skrull","Supergiant","Superior Spider-Man","Surge","Surtur","Swarm","Sword Master","Sword of Fu Xi","Symbiote","Symbiote Spider-Man","Symbiote Spider-Man - Spider-Verse","Tao Mandala","Taskmaster","Taskmaster - Thunderbolts","Techno-Organic Virus","Techno-Organic Virus Infection","Temporal Manipulation","Terrax the Tamer","Test Card","Thaddeus Ross","Thanos","Thanos Champion","The Ancient One","The Collector","The Fallen One","The First Ghost Rider","The Hood","The Hunger","The Infinaut","The Living Tribunal","The Ten Rings","The Ten Rings Upgraded","The Thing","The Thing First Steps","The Void","Thena","Thor","Thor - Avengers","Thundering Hammer","Tiger Spirit","Time Stone","Titania","Toad","Tombstone","Topaz","Toxie Doxie","Toxie Doxie - Thunderbolts","Toxin","Triton","Typhoid Mary","U.S. Agent","Uatu the Watcher","Ultron","Ultron Mind Stone","Ultron Power Stone","Ultron Reality Stone","Ultron Soul Stone","Ultron Space Stone","Ultron Time Stone","Uncle Ben","Valentina","Valentina - Thunderbolts","Valkyrie","Venom","Venus","Vibranium","Vibro-Shock Gauntlets","Victoria Hand","Viper","Vision","Vision - Avengers","Viv Vision","Vulture","Wade Wilson","Wakanda Forever","War Machine","Warlock","Warpath","Wasp","Wave","Weapon H","Weapon X Wolverine","Web Sling","Werewolf By Night","White Queen","White Queen - Brotherhood of Mutants","White Tiger","White Widow","Wiccan","Widow's Bite","Widow's Kiss","Wild Child","Wilson Fisk","Winds of Watoomb","Winter Soldier","Winter Soldier - Thunderbolts","Witchfire","Wolfsbane","Wolverine","Wolverine - X-Men","Wolverine Horseman of War","Wong","X-23","Xorn","YakaArrow","Yellowjacket","Yo-Yo","Yondu","Zabu","Zero","Zombie Captain Marvel","Zombie Galacti","Zombie Giant-Man","Zombie Horde","Zombie Mister Fantastic","Zombie Power Man","Zombie Scarlet Witch","Zombie Sentry"
 ];
 
-// Normalized set for fast lookup — used to compute unusedChars at module load
+// Normalized lookup sets ───────────────────────────────────────────────────
 function normalizeName(n) { return n.toLowerCase().replace(/[^a-z0-9]/g, ""); }
-const _snapNormSet = new Set(SNAP_CARDS.map(normalizeName));
+const _snapNormSet  = new Set(SNAP_CARDS.map(normalizeName));
+const _grantNormSet = new Set(UNUSED_CHARACTERS.map(normalizeName));
 
 // ── Survey-derived Theme Demand Score ────────────────────────────────────────
 const THEME_KEYWORDS = [
@@ -37,6 +38,24 @@ function getTDS(theme) {
 
 function avg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
 
+// ── Flag characters that are out-of-grant or already in SNAP ─────────────────
+function annotateCharacter(char) {
+  const norm = normalizeName(char.name || "");
+  return {
+    ...char,
+    _inSnap:      _snapNormSet.has(norm),
+    _notInGrant:  !_grantNormSet.has(norm) && !_snapNormSet.has(norm),
+  };
+}
+function annotateResult(parsed) {
+  return {
+    ...parsed,
+    seasonPass: parsed.seasonPass ? annotateCharacter(parsed.seasonPass) : parsed.seasonPass,
+    series5:    (parsed.series5 || []).map(annotateCharacter),
+    series4:    (parsed.series4 || []).map(annotateCharacter),
+  };
+}
+
 function computeConfidence(theme, result) {
   const tds = getTDS(theme);
   const spRec = (result.seasonPass.recognizabilityScore ?? 7) * 10;
@@ -44,8 +63,8 @@ function computeConfidence(theme, result) {
   const s4Rec = avg((result.series4 || []).map(c => (c.recognizabilityScore ?? 3))) * 10;
   const rs = spRec * 0.50 + s5Rec * 0.35 + s4Rec * 0.15;
   let rds = 100;
-  if ((result.series5 || []).length < 5) rds -= 15;
-  if ((result.series4 || []).length < 5) rds -= 10;
+  if ((result.series5 || []).length < 6) rds -= 15;
+  if ((result.series4 || []).length < 7) rds -= 10;
   if ((result.seasonPass.recognizabilityScore ?? 7) < 6) rds -= 20;
   if ((result.locations || []).length === 4) rds += 10;
   rds = Math.max(0, Math.min(100, rds));
@@ -73,15 +92,15 @@ For each character evaluate:
 
 Season Construction Rules:
 - Season Pass (1 character): Iconic, visually strong, thematic anchor, marketing appeal
-- Series 5 (5-10): Higher-profile, important allies/villains, major storyline participants
-- Series 4 (5-10): More obscure, deep cuts, side characters, thematically cohesive
+- Series 5 (6-8): Higher-profile, important allies/villains, major storyline participants
+- Series 4 (7-9): More obscure, deep cuts, side characters, thematically cohesive — target 15 total across Series 5 + Series 4
 - Locations (exactly 4): Prominent Marvel Comics locations that fit the season theme.
 
 VARIANT SUGGESTIONS (always required):
 List 4-6 characters who are ALREADY RELEASED as playable Marvel SNAP cards (NOT from the unused list — think released cards like Hulk, Thor, Spider-Man, Iron Man, Wolverine, Venom, etc.) who would benefit from a new cosmetic Variant in this season's art style. These are existing cards getting new artwork, not new cards.
 
-WISHLIST CHARACTERS (LAST RESORT — only populate if series5 + series4 total fewer than 8 characters):
-If and only if the unused character list cannot fill 8+ total slots, suggest up to 5 characters NOT in the unused list who would strengthen the season. For each, set status to either "Needs Marvel Request" (completely new to any SNAP list) or "Already in SNAP" (released card that happens to fit the theme). If the grant fills 8+ slots, return an empty array for wishlistCharacters.
+WISHLIST CHARACTERS (LAST RESORT — only populate if series5 + series4 total fewer than 12 characters):
+If and only if the unused character list cannot fill 12+ total slots, suggest up to 5 characters NOT in the unused list who would strengthen the season. For each, set status to either "Needs Marvel Request" (completely new to any SNAP list) or "Already in SNAP" (released card that happens to fit the theme). If the grant fills 12+ slots, return an empty array for wishlistCharacters.
 
 Artist Recommendations (exactly 3):
 Recommend 3 artists whose style best fits this season's visual identity and key art composition.
@@ -127,7 +146,7 @@ ${unusedChars.join(", ")}
 Produce a complete Marvel SNAP Season Proposal for the theme: "${theme}".
 Only use characters from the list above for new cards. Locations can be any canonical Marvel location.
 Always include variantSuggestions (4-6 existing SNAP cards getting new artwork).${snapContext}
-Only populate wishlistCharacters if series5 + series4 total fewer than 8 characters; otherwise return an empty array.
+Only populate wishlistCharacters if series5 + series4 total fewer than 12 characters; otherwise return an empty array.
 If insufficient matches exist, set viabilityNote to "Theme not viable with current grant list".`;
 };
 
@@ -236,8 +255,20 @@ function CharacterCard({ char, tier }) {
   const tierLabels = { seasonPass:"🏆 SEASON PASS", series5:"⭐ SERIES 5", series4:"💎 SERIES 4" };
   const c = tColors[tier];
   const avg = ((char.thematicScore + char.popularityScore) / 2).toFixed(1);
+  // Warning badges for out-of-spec characters
+  const borderColor = char._inSnap ? "#dc2626" : char._notInGrant ? "#d97706" : c;
   return (
-    <div style={{ background:"#0f172a", border:`1px solid ${c}33`, borderLeft:`3px solid ${c}`, borderRadius:10, padding:"12px 14px" }}>
+    <div style={{ background:"#0f172a", border:`1px solid ${borderColor}44`, borderLeft:`3px solid ${borderColor}`, borderRadius:10, padding:"12px 14px" }}>
+      {char._inSnap && (
+        <div style={{ background:"#450a0a", border:"1px solid #dc2626", borderRadius:6, padding:"4px 10px", marginBottom:8, fontSize:11, color:"#fca5a5", fontWeight:700 }}>
+          🚫 Already in SNAP — this character is already a playable card
+        </div>
+      )}
+      {char._notInGrant && (
+        <div style={{ background:"#422006", border:"1px solid #d97706", borderRadius:6, padding:"4px 10px", marginBottom:8, fontSize:11, color:"#fcd34d", fontWeight:700 }}>
+          ⚠️ Not in Grant — this character is outside the Second Dinner grant list
+        </div>
+      )}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
         <div style={{ flex:1 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
@@ -473,7 +504,7 @@ export default function App() {
         headers:{ "Content-Type":"application/json", ...getAuthHeader() },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
-          max_tokens:4500,
+          max_tokens:6000,
           system: SYSTEM_PROMPT,
           messages:[{ role:"user", content: buildUserPrompt(theme, unusedChars, snapCards) }]
         })
@@ -482,7 +513,7 @@ export default function App() {
       if (json.error) throw new Error(json.error.message || json.error);
       const raw = json.content?.find(b => b.type==="text")?.text || "";
       const clean = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
-      const parsed = JSON.parse(clean);
+      const parsed = annotateResult(JSON.parse(clean));
       const computedScore = computeConfidence(theme, parsed);
       parsed.confidence = computedScore;
       setResult(parsed);
@@ -528,6 +559,16 @@ export default function App() {
   const avgPop = (list) => list.length ? (list.reduce((s,c)=>s+c.popularityScore,0)/list.length).toFixed(1) : "–";
   const viable = result && !result.viabilityNote?.includes("not viable");
   const hasWishlist = viable && result.wishlistCharacters?.length > 0;
+
+  // Collect all flagged characters for summary banner
+  const allNewChars = viable ? [
+    result.seasonPass,
+    ...(result.series5 || []),
+    ...(result.series4 || []),
+  ].filter(Boolean) : [];
+  const inSnapFlags    = allNewChars.filter(c => c._inSnap);
+  const notGrantFlags  = allNewChars.filter(c => c._notInGrant);
+  const hasFlags       = inSnapFlags.length > 0 || notGrantFlags.length > 0;
 
   // ── Password gate ─────────────────────────────────────────────────────────
   if (!authed) {
@@ -641,6 +682,23 @@ export default function App() {
             {hasWishlist && (
               <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left" }}>
                 <span style={{ color:"#fb923c", fontWeight:700, fontSize:12 }}>⚠️ Grant partially insufficient — {result.wishlistCharacters.length} wishlist character{result.wishlistCharacters.length > 1 ? "s" : ""} needed. See Roster tab.</span>
+              </div>
+            )}
+            {hasFlags && (
+              <div style={{ background:"#1c0a0a", border:"1px solid #991b1b", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left" }}>
+                <div style={{ color:"#f87171", fontWeight:700, fontSize:12, marginBottom:4 }}>
+                  🚨 AI generated out-of-spec characters — review roster carefully
+                </div>
+                {inSnapFlags.length > 0 && (
+                  <div style={{ fontSize:11, color:"#fca5a5", marginBottom:2 }}>
+                    🚫 Already in SNAP ({inSnapFlags.length}): {inSnapFlags.map(c => c.name).join(", ")}
+                  </div>
+                )}
+                {notGrantFlags.length > 0 && (
+                  <div style={{ fontSize:11, color:"#fcd34d" }}>
+                    ⚠️ Not in Grant ({notGrantFlags.length}): {notGrantFlags.map(c => c.name).join(", ")}
+                  </div>
+                )}
               </div>
             )}
             {result.keyArtComposition && (
