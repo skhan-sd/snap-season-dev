@@ -35,6 +35,30 @@ app.post("/api/generate", async (req, res) => {
   }
 });
 
+// ===== SLACK ROUTE =====
+app.post("/api/slack", async (req, res) => {
+  try {
+    const token = process.env.SLACK_BOT_TOKEN;
+    if (!token) {
+      return res.status(500).json({ error: "Missing SLACK_BOT_TOKEN environment variable" });
+    }
+    const { message, channel } = req.body;
+    const response = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ channel: channel || "C07EXLBDDNE", text: message })
+    });
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.error || "Slack API error");
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== SERVE FRONTEND =====
 app.use(express.static(path.join(__dirname, "../dist")));
 

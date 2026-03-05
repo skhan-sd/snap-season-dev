@@ -68,13 +68,19 @@ Season Construction Rules:
 - Series 4 (5-10): More obscure, deep cuts, side characters, thematically cohesive
 - Locations (exactly 4): Prominent Marvel Comics locations that fit the season theme.
 
+VARIANT SUGGESTIONS (always required):
+List 4-6 characters who are ALREADY RELEASED as playable Marvel SNAP cards (NOT from the unused list — think released cards like Hulk, Thor, Spider-Man, Iron Man, Wolverine, Venom, etc.) who would benefit from a new cosmetic Variant in this season's art style. These are existing cards getting new artwork, not new cards.
+
+WISHLIST CHARACTERS (LAST RESORT — only populate if series5 + series4 total fewer than 8 characters):
+If and only if the unused character list cannot fill 8+ total slots, suggest up to 5 characters NOT in the unused list who would strengthen the season. For each, set status to either "Needs Marvel Request" (completely new to any SNAP list) or "Already in SNAP" (released card that happens to fit the theme). If the grant fills 8+ slots, return an empty array for wishlistCharacters.
+
 Artist Recommendations (exactly 3):
 Recommend 3 artists whose style best fits this season's visual identity and key art composition.
 - Include at least 1 artist who has worked on Marvel SNAP cards or variants.
 - Include at least 1 external artist (comic, illustration, or concept art) not yet in SNAP.
 - Be specific about WHY each artist's aesthetic matches this exact season's mood and characters.
 
-ONLY select characters from the provided unused character list. Locations can be any canonical Marvel location.
+ONLY select new cards from the provided unused character list. Locations can be any canonical Marvel location.
 
 Return ONLY valid JSON (no markdown fences, no explanation):
 {
@@ -83,6 +89,8 @@ Return ONLY valid JSON (no markdown fences, no explanation):
   "seasonPass": { "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number },
   "series5": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
   "series4": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
+  "variantSuggestions": [{ "name": "string", "reason": "string (why this card suits the season's art style)" }],
+  "wishlistCharacters": [{ "name": "string", "reason": "string", "status": "Needs Marvel Request" | "Already in SNAP" }],
   "locations": [{ "name": "string", "description": "string", "wikiSlug": "string" }],
   "suggestedTitle": "string",
   "keyArtComposition": "string",
@@ -99,7 +107,9 @@ Theme: "${theme}"
 Full Unused Character List (${UNUSED_CHARACTERS.length} characters):
 ${UNUSED_CHARACTERS.join(", ")}
 Produce a complete Marvel SNAP Season Proposal for the theme: "${theme}".
-Only use characters from the list above. Locations can be any canonical Marvel location.
+Only use characters from the list above for new cards. Locations can be any canonical Marvel location.
+Always include variantSuggestions (4-6 existing SNAP cards getting new artwork).
+Only populate wishlistCharacters if series5 + series4 total fewer than 8 characters; otherwise return an empty array.
 If insufficient matches exist, set viabilityNote to "Theme not viable with current grant list".`;
 
 // ── Export helpers ────────────────────────────────────────────────────────────
@@ -136,6 +146,50 @@ function copySheets(data) {
   navigator.clipboard.writeText(rows.map(r => r.join("\t")).join("\n"))
     .then(() => alert("✅ Copied! Paste directly into Google Sheets."))
     .catch(() => alert("Clipboard blocked — try JSON or CSV export instead."));
+}
+
+// ── Slack helpers ─────────────────────────────────────────────────────────────
+function buildSlackMessage(result, theme, confidence) {
+  const lines = [];
+  lines.push(`🎴 *${result.seasonName}* — _"${result.suggestedTitle}"_`);
+  lines.push(`*Theme:* ${theme}   *Confidence:* ${confidence}%`);
+  lines.push("");
+  lines.push(`_${result.pitch}_`);
+  lines.push("");
+  lines.push("`Season Pass`");
+  lines.push(`• ${result.seasonPass.name}`);
+  lines.push("");
+  lines.push("`Series 5`");
+  (result.series5 || []).forEach(c => lines.push(`• ${c.name}`));
+  lines.push("");
+  lines.push("`Series 4`");
+  (result.series4 || []).forEach(c => lines.push(`• ${c.name}`));
+  if (result.variantSuggestions?.length) {
+    lines.push("");
+    lines.push("`Variants`");
+    result.variantSuggestions.forEach(v => lines.push(`• ${v.name}`));
+  }
+  if (result.wishlistCharacters?.length) {
+    lines.push("");
+    lines.push("`⚠️ Wishlist (Grant Gaps)`");
+    result.wishlistCharacters.forEach(w => lines.push(`• ${w.name} — _${w.status}_`));
+  }
+  lines.push("");
+  lines.push(`🎨 *Artists:* ${(result.artistRecommendations || []).map(a => a.name).join(" · ")}`);
+  lines.push(`📍 *Locations:* ${(result.locations || []).map(l => l.name).join(" · ")}`);
+  return lines.join("\n");
+}
+
+async function sendToSlack(result, theme, confidence) {
+  const message = buildSlackMessage(result, theme, confidence);
+  const res = await fetch("/api/slack", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, channel: "C07EXLBDDNE" })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return true;
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -263,15 +317,86 @@ function ConfidenceMeter({ score, theme }) {
   );
 }
 
-function ExportPanel({ data, theme }) {
+function VariantCard({ v }) {
+  return (
+    <div style={{ background:"#0f172a", border:"1px solid #7c3aed44", borderLeft:"3px solid #7c3aed", borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
+      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>🎨</div>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:13 }}>{v.name}</span>
+          <a href={fandomUrl(v.name)} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>📖 Fandom</a>
+        </div>
+        <p style={{ color:"#64748b", fontSize:11, margin:"4px 0 0", lineHeight:1.5 }}>{v.reason}</p>
+      </div>
+    </div>
+  );
+}
+
+function WishlistCard({ w }) {
+  const needsRequest = w.status === "Needs Marvel Request";
+  return (
+    <div style={{ background:"#0f172a", border:`1px solid ${needsRequest ? "#dc2626" : "#d97706"}44`, borderLeft:`3px solid ${needsRequest ? "#dc2626" : "#d97706"}`, borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
+      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>{needsRequest ? "📋" : "🔄"}</div>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:13 }}>{w.name}</span>
+          <span style={{ fontSize:10, fontWeight:600, color: needsRequest ? "#f87171" : "#fbbf24", background: needsRequest ? "#450a0a" : "#422006", borderRadius:4, padding:"1px 6px" }}>
+            {w.status}
+          </span>
+        </div>
+        <p style={{ color:"#64748b", fontSize:11, margin:"4px 0 0", lineHeight:1.5 }}>{w.reason}</p>
+      </div>
+    </div>
+  );
+}
+
+function SlackButton({ result, theme, confidence }) {
+  const [status, setStatus] = useState("idle");
+  const [errMsg, setErrMsg] = useState("");
+  const handle = async () => {
+    setStatus("sending"); setErrMsg("");
+    try {
+      await sendToSlack(result, theme, confidence);
+      setStatus("success");
+      setTimeout(() => setStatus("idle"), 4000);
+    } catch (e) {
+      setErrMsg(e.message || "Unknown error");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 6000);
+    }
+  };
+  const configs = {
+    idle:    { bg:"#1a1a2e", border:"#4a4a8f", color:"#a78bfa", label:"📤 Send to Slack", cursor:"pointer" },
+    sending: { bg:"#1e1e3a", border:"#6366f1", color:"#818cf8", label:"⏳ Sending…",       cursor:"not-allowed" },
+    success: { bg:"#052e16", border:"#16a34a", color:"#4ade80", label:"✅ Posted to #snap-season-brainstorming", cursor:"default" },
+    error:   { bg:"#1c0a0a", border:"#dc2626", color:"#f87171", label:"❌ Failed — retry?", cursor:"pointer" },
+  };
+  const cfg = configs[status];
+  return (
+    <div>
+      <button onClick={status === "sending" ? undefined : handle} style={{
+        padding:"9px 18px", borderRadius:8, border:`1px solid ${cfg.border}`,
+        background:cfg.bg, color:cfg.color, fontWeight:700, fontSize:13,
+        cursor:cfg.cursor, transition:"all 0.2s", display:"flex", alignItems:"center", gap:6
+      }}>
+        {cfg.label}
+      </button>
+      {status === "error" && errMsg && <div style={{ fontSize:11, color:"#f87171", marginTop:4 }}>{errMsg}</div>}
+    </div>
+  );
+}
+
+function ExportPanel({ data, theme, confidence }) {
   const btn = (color, label, fn) => (
     <button onClick={fn} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12, background:color, color:"#fff" }}>{label}</button>
   );
   return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:16 }}>
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:16, alignItems:"center" }}>
       {btn("#3b82f6","⬇ JSON", () => exportJSON(data, theme))}
       {btn("#10b981","⬇ CSV",  () => exportCSV(data, theme))}
       {btn("#8b5cf6","📋 Copy for Sheets", () => copySheets(data))}
+      <SlackButton result={data} theme={theme} confidence={confidence} />
     </div>
   );
 }
@@ -296,7 +421,7 @@ export default function App() {
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
-          max_tokens:4000,
+          max_tokens:4500,
           system: SYSTEM_PROMPT,
           messages:[{ role:"user", content: buildUserPrompt(theme) }]
         })
@@ -326,6 +451,7 @@ export default function App() {
   );
   const avgPop = (list) => list.length ? (list.reduce((s,c)=>s+c.popularityScore,0)/list.length).toFixed(1) : "–";
   const viable = result && !result.viabilityNote?.includes("not viable");
+  const hasWishlist = viable && result.wishlistCharacters?.length > 0;
 
   return (
     <div style={{ minHeight:"100vh", background:"#020617", color:"#f1f5f9", fontFamily:"'Inter','Segoe UI',sans-serif", padding:24 }}>
@@ -335,7 +461,7 @@ export default function App() {
           MARVEL SNAP Season Generator
         </h1>
         <p style={{ color:"#64748b", margin:"6px 0 0", fontSize:13 }}>
-          AI-powered season proposals · Survey-calibrated confidence · {UNUSED_CHARACTERS.length} characters loaded
+          AI-powered · Survey-calibrated confidence · Artist recs · Slack integration · {UNUSED_CHARACTERS.length} characters
         </p>
       </div>
 
@@ -394,6 +520,11 @@ export default function App() {
             <div style={{ color:"#a5b4fc", fontSize:13, marginBottom:10 }}>"{result.suggestedTitle}"</div>
             <p style={{ color:"#cbd5e1", fontSize:13, lineHeight:1.7, maxWidth:600, margin:"0 auto 16px" }}>{result.pitch}</p>
             <ConfidenceMeter score={confidence ?? result.confidence} theme={theme} />
+            {hasWishlist && (
+              <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left" }}>
+                <span style={{ color:"#fb923c", fontWeight:700, fontSize:12 }}>⚠️ Grant partially insufficient — {result.wishlistCharacters.length} wishlist character{result.wishlistCharacters.length > 1 ? "s" : ""} needed. See Roster tab.</span>
+              </div>
+            )}
             {result.keyArtComposition && (
               <div style={{ background:"#0f172a", borderRadius:8, padding:10, fontSize:12, color:"#94a3b8", textAlign:"left" }}>
                 🎨 <strong style={{ color:"#f1f5f9" }}>Key Art:</strong> {result.keyArtComposition}
@@ -438,7 +569,36 @@ export default function App() {
                   {result.series4.map(c => <CharacterCard key={c.name} char={c} tier="series4" />)}
                 </div>
               </div>
-              <ExportPanel data={result} theme={theme} />
+              {/* Variant Suggestions */}
+              {result.variantSuggestions?.length > 0 && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <h3 style={{ color:"#a78bfa", fontSize:13, textTransform:"uppercase", letterSpacing:1, margin:0 }}>
+                      🎨 Variant Suggestions — Existing SNAP Cards
+                    </h3>
+                    <span style={{ fontSize:11, color:"#475569", background:"#1e293b", borderRadius:20, padding:"2px 10px" }}>Already in game · New art only</span>
+                  </div>
+                  <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
+                    {result.variantSuggestions.map(v => <VariantCard key={v.name} v={v} />)}
+                  </div>
+                </div>
+              )}
+              {/* Wishlist — Last Resort */}
+              {hasWishlist && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:10, padding:"12px 16px", marginBottom:12 }}>
+                    <div style={{ color:"#fb923c", fontWeight:700, fontSize:13, marginBottom:4 }}>⚠️ Grant Insufficient — Wishlist Characters</div>
+                    <p style={{ color:"#92400e", fontSize:12, margin:0, lineHeight:1.5 }}>
+                      The current grant list doesn't fully support this theme. The characters below would strengthen the season but are not in the grant.
+                      Red = requires a new Marvel request. Orange = already exists in SNAP but not in grant.
+                    </p>
+                  </div>
+                  <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
+                    {result.wishlistCharacters.map(w => <WishlistCard key={w.name} w={w} />)}
+                  </div>
+                </div>
+              )}
+              <ExportPanel data={result} theme={theme} confidence={confidence ?? result.confidence} />
             </div>
           )}
 
@@ -470,7 +630,7 @@ export default function App() {
               <div style={{ display:"grid", gap:10, gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", marginBottom:16 }}>
                 {(result.locations || []).map(loc => <LocationCard key={loc.name} loc={loc} />)}
               </div>
-              <ExportPanel data={result} theme={theme} />
+              <ExportPanel data={result} theme={theme} confidence={confidence ?? result.confidence} />
             </div>
           )}
 
@@ -502,7 +662,9 @@ export default function App() {
                   ["Title Tagline", result.suggestedTitle],
                   ["Confidence (Survey-calibrated)", `${confidence ?? result.confidence}%`],
                   ["Theme Demand Score", `${getTDS(theme)}% (from player survey)`],
-                  ["Total Characters", 1 + result.series5.length + result.series4.length],
+                  ["Total New Characters", 1 + result.series5.length + result.series4.length],
+                  ["Variant Suggestions", result.variantSuggestions?.length ?? 0],
+                  ["Wishlist Characters", result.wishlistCharacters?.length ?? 0],
                   ["Season Pass", result.seasonPass?.name],
                   ["Locations", (result.locations||[]).map(l=>l.name).join(", ")],
                 ].map(([label, value]) => (
@@ -536,14 +698,14 @@ export default function App() {
                   </div>
                 ))}
               </div>
-              <ExportPanel data={result} theme={theme} />
+              <ExportPanel data={result} theme={theme} confidence={confidence ?? result.confidence} />
             </div>
           )}
         </div>
       )}
 
       <div style={{ textAlign:"center", marginTop:40, color:"#334155", fontSize:11 }}>
-        Marvel SNAP Season Generator v2 · Survey-Calibrated Confidence · Claude AI · {UNUSED_CHARACTERS.length} Characters
+        Marvel SNAP Season Generator v3 · Survey-Calibrated · Variants · Wishlist · Slack · {UNUSED_CHARACTERS.length} Characters
       </div>
     </div>
   );
