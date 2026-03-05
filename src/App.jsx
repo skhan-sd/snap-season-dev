@@ -6,91 +6,81 @@ const UNUSED_CHARACTERS = [
 
 // ── Survey-derived Theme Demand Score ────────────────────────────────────────
 const THEME_KEYWORDS = [
-  { keys: ["mythology","gods","divine","olympus","asgard","pantheon"], score: 100 },
-  { keys: ["multiverse","alt-universe","alternate","parallel","dimensions","variants"], score: 95 },
-  { keys: ["sci-fi","high-tech","tech","science","robot","ai","future"], score: 80 },
-  { keys: ["cosmic","space","galaxy","universe","intergalactic","celestial","herald"], score: 78 },
-  { keys: ["horror","spooky","undead","ghost","demon","vampire","occult","dark magic","magic","arcane","mystical","sorcery"], score: 76 },
-  { keys: ["historical","era","war","western","ancient","medieval","pop culture"], score: 49 },
-  { keys: ["heist","crime","street","underground","mob","syndicate","gang"], score: 39 },
-  { keys: ["seasonal","holiday","winter","summer","christmas","halloween"], score: 34 },
-  { keys: ["cute","creatures","animals","pets","critters"], score: 32 },
+  { keys:["mythology","gods","divine","olympus","asgard","pantheon"], score:100 },
+  { keys:["multiverse","alt-universe","alternate","parallel","dimensions","variants"], score:95 },
+  { keys:["sci-fi","high-tech","tech","science","robot","ai","future"], score:80 },
+  { keys:["cosmic","space","galaxy","universe","intergalactic","celestial","herald"], score:78 },
+  { keys:["horror","spooky","undead","ghost","demon","vampire","occult","dark magic","magic","arcane","mystical","sorcery"], score:76 },
+  { keys:["historical","era","war","western","ancient","medieval","pop culture"], score:49 },
+  { keys:["heist","crime","street","underground","mob","syndicate","gang"], score:39 },
+  { keys:["seasonal","holiday","winter","summer","christmas","halloween"], score:34 },
+  { keys:["cute","creatures","animals","pets","critters"], score:32 },
 ];
-
 function getTDS(theme) {
   const lower = theme.toLowerCase();
   let best = 40;
-  for (const { keys, score } of THEME_KEYWORDS) {
+  for (const { keys, score } of THEME_KEYWORDS)
     if (keys.some(k => lower.includes(k))) best = Math.max(best, score);
-  }
   return best;
 }
-
-function avg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0; }
-
+function avg(arr) { return arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : 0; }
 function computeConfidence(theme, result) {
   const tds = getTDS(theme);
   const spRec = (result.seasonPass.recognizabilityScore ?? 7) * 10;
-  const s5Rec = avg((result.series5 || []).map(c => (c.recognizabilityScore ?? 5))) * 10;
-  const s4Rec = avg((result.series4 || []).map(c => (c.recognizabilityScore ?? 3))) * 10;
-  const rs = spRec * 0.50 + s5Rec * 0.35 + s4Rec * 0.15;
+  const s5Rec = avg((result.series5||[]).map(c => (c.recognizabilityScore??5))) * 10;
+  const s4Rec = avg((result.series4||[]).map(c => (c.recognizabilityScore??3))) * 10;
+  const rs = spRec*0.50 + s5Rec*0.35 + s4Rec*0.15;
   let rds = 100;
-  if ((result.series5 || []).length < 5) rds -= 15;
-  if ((result.series4 || []).length < 5) rds -= 10;
-  if ((result.seasonPass.recognizabilityScore ?? 7) < 6) rds -= 20;
-  if ((result.locations || []).length === 4) rds += 10;
+  if ((result.series5||[]).length < 5) rds -= 15;
+  if ((result.series4||[]).length < 5) rds -= 10;
+  if ((result.seasonPass.recognizabilityScore??7) < 6) rds -= 20;
+  if ((result.locations||[]).length === 4) rds += 10;
   rds = Math.max(0, Math.min(100, rds));
-  return Math.round(tds * 0.35 + rs * 0.40 + rds * 0.25);
+  return Math.round(tds*0.35 + rs*0.40 + rds*0.25);
 }
 
-// ── Fandom URL builder ────────────────────────────────────────────────────────
 function fandomUrl(name) {
-  const clean = name
-    .replace(/\s*\(Earth-\d+\)/gi, "")
-    .replace(/\s*\[.*?\]/g, "")
-    .split(" / ")[0]
-    .trim()
-    .replace(/\s+/g, "_");
+  const clean = name.replace(/\s*\(Earth-\d+\)/gi,"").replace(/\s*\[.*?\]/g,"").split(" / ")[0].trim().replace(/\s+/g,"_");
   return `https://marvel.fandom.com/wiki/${encodeURIComponent(clean)}`;
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are a Marvel Comics expert and game design consultant specializing in Marvel SNAP card game season planning.
 
-For each character evaluate:
-- THEMATIC RELEVANCE (0-10): Fit to the theme
-- POPULARITY (0-10): Comic appearances, crossovers, major arcs, mainstream recognition
-- RECOGNIZABILITY (0-10): Would a casual Marvel fan recognize them?
-
 Season Construction Rules:
-- Season Pass (1 character): Iconic, visually strong, thematic anchor, marketing appeal
-- Series 5 (5-10): Higher-profile, important allies/villains, major storyline participants
+- Season Pass (1): Iconic, visually strong, thematic anchor, marketing appeal
+- Series 5 (5-10): Higher-profile allies/villains, major storyline participants
 - Series 4 (5-10): More obscure, deep cuts, side characters, thematically cohesive
-- Locations (exactly 4): Prominent Marvel Comics locations that fit the season theme.
+- Locations (exactly 4): Canonical Marvel locations fitting the theme
 
-Artist Recommendations (exactly 3):
-Recommend 3 artists whose style best fits this season's visual identity and key art composition.
-- Include at least 1 artist who has worked on Marvel SNAP cards or variants.
-- Include at least 1 external artist (comic, illustration, or concept art) not yet in SNAP.
-- Be specific about WHY each artist's aesthetic matches this exact season's mood and characters.
+Per character, score: popularityScore (0-10), thematicScore (0-10), recognizabilityScore (0-10).
 
-ONLY select characters from the provided unused character list. Locations can be any canonical Marvel location.
+VARIANT SUGGESTIONS (always required):
+List 4-6 characters who are ALREADY RELEASED as playable Marvel SNAP cards (NOT from the unused list — think released cards like Hulk, Thor, Spider-Man, Iron Man, Wolverine, Venom, etc.) who would benefit from a new cosmetic Variant in this season's art style. These are existing cards getting new artwork, not new cards.
 
-Return ONLY valid JSON (no markdown fences, no explanation):
+WISHLIST CHARACTERS (LAST RESORT — only populate if series5 + series4 total fewer than 8 characters):
+If and only if the unused character list cannot fill 8+ total slots, suggest up to 5 characters NOT in the unused list who would strengthen the season. For each, set status to either "Needs Marvel Request" (completely new to any SNAP list) or "Already in SNAP" (released card that happens to fit). If the grant fills 8+ slots, return an empty array for wishlistCharacters.
+
+ARTIST RECOMMENDATIONS (exactly 3):
+Recommend 3 artists whose style best matches this season's visual identity. Include at least 1 artist who has worked on Marvel SNAP, and at least 1 external artist not yet in SNAP. Explain specifically why each fits this season.
+
+ONLY select new cards from the provided unused character list.
+
+Return ONLY valid JSON (no markdown, no explanation):
 {
   "seasonName": "string",
   "pitch": "string (2-3 sentences)",
   "seasonPass": { "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number },
   "series5": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
   "series4": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
+  "variantSuggestions": [{ "name": "string", "reason": "string (why this card suits the season's art style)" }],
+  "wishlistCharacters": [{ "name": "string", "reason": "string", "status": "Needs Marvel Request" | "Already in SNAP" }],
   "locations": [{ "name": "string", "description": "string", "wikiSlug": "string" }],
   "suggestedTitle": "string",
   "keyArtComposition": "string",
   "backupSeasonPass": ["string", "string"],
   "mechanicalHooks": ["string", "string", "string"],
-  "artistRecommendations": [
-    { "name": "string", "style": "string (brief style description)", "why": "string (1-2 sentences specific to this season)", "inSnap": boolean }
-  ],
+  "artistRecommendations": [{ "name": "string", "style": "string", "why": "string", "inSnap": boolean }],
   "viabilityNote": null
 }`;
 
@@ -99,57 +89,100 @@ Theme: "${theme}"
 Full Unused Character List (${UNUSED_CHARACTERS.length} characters):
 ${UNUSED_CHARACTERS.join(", ")}
 Produce a complete Marvel SNAP Season Proposal for the theme: "${theme}".
-Only use characters from the list above. Locations can be any canonical Marvel location.
-If insufficient matches exist, set viabilityNote to "Theme not viable with current grant list".`;
+Only use characters from the list above for new cards. Locations can be any canonical Marvel location.
+If insufficient matches, set viabilityNote to "Theme not viable with current grant list".`;
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function downloadDataURI(content, filename, mime) {
   const uri = `data:${mime};charset=utf-8,${encodeURIComponent(content)}`;
-  const a = document.createElement("a");
-  a.href = uri; a.download = filename; a.click();
+  const a = document.createElement("a"); a.href = uri; a.download = filename; a.click();
 }
 function exportJSON(data, theme) {
-  downloadDataURI(JSON.stringify(data, null, 2), `snap-season-${theme.replace(/\s+/g,"_")}.json`, "application/json");
+  downloadDataURI(JSON.stringify(data,null,2), `snap-season-${theme.replace(/\s+/g,"_")}.json`, "application/json");
 }
 function exportCSV(data, theme) {
   const rows = [["Tier","Character","Thematic","Popularity","Recognizability","Avg","Reasoning","Fandom Link"]];
   const add = (tier, list) => list.forEach(c => {
-    const a = ((c.thematicScore + c.popularityScore) / 2).toFixed(1);
-    rows.push([tier, c.name, c.thematicScore, c.popularityScore, c.recognizabilityScore ?? "–", a, `"${(c.reason||"").replace(/"/g,'""')}"`, fandomUrl(c.name)]);
+    const a = ((c.thematicScore+c.popularityScore)/2).toFixed(1);
+    rows.push([tier,c.name,c.thematicScore,c.popularityScore,c.recognizabilityScore??"–",a,`"${(c.reason||"").replace(/"/g,'""')}"`,fandomUrl(c.name)]);
   });
-  add("Season Pass", [data.seasonPass]);
-  add("Series 5", data.series5);
-  add("Series 4", data.series4);
+  add("Season Pass",[data.seasonPass]); add("Series 5",data.series5); add("Series 4",data.series4);
   if (data.locations?.length) {
     rows.push([]); rows.push(["--- LOCATIONS ---"]);
     rows.push(["Location","Description","Fandom Link"]);
-    data.locations.forEach(l => rows.push([l.name, `"${(l.description||"").replace(/"/g,'""')}"`, `https://marvel.fandom.com/wiki/${l.wikiSlug}`]));
+    data.locations.forEach(l=>rows.push([l.name,`"${(l.description||"").replace(/"/g,'""')}"`,`https://marvel.fandom.com/wiki/${l.wikiSlug}`]));
   }
-  downloadDataURI(rows.map(r => r.join(",")).join("\n"), `snap-season-${theme.replace(/\s+/g,"_")}.csv`, "text/csv");
+  downloadDataURI(rows.map(r=>r.join(",")).join("\n"),`snap-season-${theme.replace(/\s+/g,"_")}.csv`,"text/csv");
 }
 function copySheets(data) {
   const rows = [["Tier","Character","Thematic","Popularity","Recognizability","Avg","Reasoning","Fandom Link"]];
-  const add = (tier, list) => list.forEach(c => rows.push([tier, c.name, c.thematicScore, c.popularityScore, c.recognizabilityScore ?? "–", ((c.thematicScore+c.popularityScore)/2).toFixed(1), c.reason, fandomUrl(c.name)]));
-  add("Season Pass", [data.seasonPass]);
-  add("Series 5", data.series5);
-  add("Series 4", data.series4);
-  navigator.clipboard.writeText(rows.map(r => r.join("\t")).join("\n"))
-    .then(() => alert("✅ Copied! Paste directly into Google Sheets."))
-    .catch(() => alert("Clipboard blocked — try JSON or CSV export instead."));
+  const add = (tier, list) => list.forEach(c => rows.push([tier,c.name,c.thematicScore,c.popularityScore,c.recognizabilityScore??"–",((c.thematicScore+c.popularityScore)/2).toFixed(1),c.reason,fandomUrl(c.name)]));
+  add("Season Pass",[data.seasonPass]); add("Series 5",data.series5); add("Series 4",data.series4);
+  navigator.clipboard.writeText(rows.map(r=>r.join("\t")).join("\n"))
+    .then(()=>alert("✅ Copied!")).catch(()=>alert("Clipboard blocked — try JSON or CSV."));
+}
+
+// ── Build Slack message ───────────────────────────────────────────────────────
+function buildSlackMessage(result, theme, confidence) {
+  const lines = [];
+  lines.push(`🎴 *${result.seasonName}* — _"${result.suggestedTitle}"_`);
+  lines.push(`*Theme:* ${theme}   *Confidence:* ${confidence}%`);
+  lines.push("");
+  lines.push(`_${result.pitch}_`);
+  lines.push("");
+  lines.push("`Season Pass`");
+  lines.push(`• ${result.seasonPass.name}`);
+  lines.push("");
+  lines.push("`Series 5`");
+  (result.series5||[]).forEach(c => lines.push(`• ${c.name}`));
+  lines.push("");
+  lines.push("`Series 4`");
+  (result.series4||[]).forEach(c => lines.push(`• ${c.name}`));
+  if (result.variantSuggestions?.length) {
+    lines.push("");
+    lines.push("`Variants`");
+    result.variantSuggestions.forEach(v => lines.push(`• ${v.name}`));
+  }
+  if (result.wishlistCharacters?.length) {
+    lines.push("");
+    lines.push("`⚠️ Wishlist (Grant Gaps)`");
+    result.wishlistCharacters.forEach(w => lines.push(`• ${w.name} — _${w.status}_`));
+  }
+  lines.push("");
+  lines.push(`🎨 *Artists:* ${(result.artistRecommendations||[]).map(a=>a.name).join(" · ")}`);
+  lines.push(`📍 *Locations:* ${(result.locations||[]).map(l=>l.name).join(" · ")}`);
+  return lines.join("\n");
+}
+
+async function sendToSlack(result, theme, confidence) {
+  const message = buildSlackMessage(result, theme, confidence);
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      mcp_servers: [{ type: "url", url: "https://mcp.slack.com/mcp", name: "slack" }],
+      messages: [{ role: "user", content: `Send this exact message to Slack channel C07EXLBDDNE (no modifications, preserve all formatting):\n\n${message}` }]
+    })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
+  return true;
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-const scoreColor = (s) => s >= 8 ? "#4ade80" : s >= 5 ? "#facc15" : "#f87171";
+const scoreColor = s => s >= 8 ? "#4ade80" : s >= 5 ? "#facc15" : "#f87171";
 
 function ScoreBar({ label, value }) {
-  if (value === undefined || value === null) return null;
+  if (value == null) return null;
   return (
-    <div style={{ marginBottom: 4 }}>
+    <div style={{ marginBottom:4 }}>
       <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#94a3b8" }}>
-        <span>{label}</span><span style={{ color: scoreColor(value) }}>{value}/10</span>
+        <span>{label}</span><span style={{ color:scoreColor(value) }}>{value}/10</span>
       </div>
       <div style={{ background:"#1e293b", borderRadius:4, height:6, overflow:"hidden" }}>
-        <div style={{ width:`${value*10}%`, height:"100%", background: scoreColor(value), borderRadius:4, transition:"width 0.5s" }} />
+        <div style={{ width:`${value*10}%`, height:"100%", background:scoreColor(value), borderRadius:4, transition:"width 0.5s" }} />
       </div>
     </div>
   );
@@ -160,7 +193,7 @@ function CharacterCard({ char, tier }) {
   const tColors = { seasonPass:"#f59e0b", series5:"#818cf8", series4:"#34d399" };
   const tierLabels = { seasonPass:"🏆 SEASON PASS", series5:"⭐ SERIES 5", series4:"💎 SERIES 4" };
   const c = tColors[tier];
-  const avg = ((char.thematicScore + char.popularityScore) / 2).toFixed(1);
+  const a = ((char.thematicScore+char.popularityScore)/2).toFixed(1);
   return (
     <div style={{ background:"#0f172a", border:`1px solid ${c}33`, borderLeft:`3px solid ${c}`, borderRadius:10, padding:"12px 14px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -168,44 +201,65 @@ function CharacterCard({ char, tier }) {
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
             <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:14 }}>{char.name}</span>
             <a href={fandomUrl(char.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
-              style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none", whiteSpace:"nowrap" }}>
-              📖 Fandom
-            </a>
+              style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>📖 Fandom</a>
           </div>
           <div style={{ fontSize:11, color:c, marginTop:2 }}>{tierLabels[tier]}</div>
         </div>
         <div style={{ textAlign:"right", marginLeft:8 }}>
-          <div style={{ fontSize:20, fontWeight:800, color: scoreColor(parseFloat(avg)) }}>{avg}</div>
+          <div style={{ fontSize:20, fontWeight:800, color:scoreColor(parseFloat(a)) }}>{a}</div>
           <div style={{ fontSize:10, color:"#64748b" }}>AVG</div>
         </div>
       </div>
-      <p onClick={() => setOpen(!open)}
-        style={{ color: open?"#cbd5e1":"#64748b", fontSize:12, marginTop:8, marginBottom: open?10:0, cursor:"pointer", lineHeight:1.6,
-          ...(open ? {} : { overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }) }}>
+      <p onClick={()=>setOpen(!open)} style={{ color:open?"#cbd5e1":"#64748b", fontSize:12, marginTop:8, marginBottom:open?10:0, cursor:"pointer", lineHeight:1.6, ...(open?{}:{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }) }}>
         {char.reason}
       </p>
-      {open && (
-        <div style={{ borderTop:"1px solid #1e293b", paddingTop:10 }}>
-          <ScoreBar label="Thematic Fit" value={char.thematicScore} />
-          <ScoreBar label="Popularity" value={char.popularityScore} />
-          <ScoreBar label="Recognizability" value={char.recognizabilityScore} />
+      {open && <div style={{ borderTop:"1px solid #1e293b", paddingTop:10 }}><ScoreBar label="Thematic Fit" value={char.thematicScore} /><ScoreBar label="Popularity" value={char.popularityScore} /><ScoreBar label="Recognizability" value={char.recognizabilityScore} /></div>}
+      {!open && <button onClick={()=>setOpen(true)} style={{ fontSize:10, color:"#475569", background:"none", border:"none", cursor:"pointer", padding:0, marginTop:2 }}>▼ expand</button>}
+    </div>
+  );
+}
+
+function VariantCard({ v }) {
+  return (
+    <div style={{ background:"#0f172a", border:"1px solid #7c3aed44", borderLeft:"3px solid #7c3aed", borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
+      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>🎨</div>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:13 }}>{v.name}</span>
+          <a href={fandomUrl(v.name)} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>📖 Fandom</a>
         </div>
-      )}
-      {!open && <button onClick={() => setOpen(true)} style={{ fontSize:10, color:"#475569", background:"none", border:"none", cursor:"pointer", padding:0, marginTop:2 }}>▼ expand</button>}
+        <p style={{ color:"#64748b", fontSize:11, margin:"4px 0 0", lineHeight:1.5 }}>{v.reason}</p>
+      </div>
+    </div>
+  );
+}
+
+function WishlistCard({ w }) {
+  const needsRequest = w.status === "Needs Marvel Request";
+  return (
+    <div style={{ background:"#0f172a", border:`1px solid ${needsRequest?"#dc2626":"#d97706"}44`, borderLeft:`3px solid ${needsRequest?"#dc2626":"#d97706"}`, borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
+      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>{needsRequest ? "📋" : "🔄"}</div>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:13 }}>{w.name}</span>
+          <span style={{ fontSize:10, fontWeight:600, color: needsRequest?"#f87171":"#fbbf24", background: needsRequest?"#450a0a":"#422006", borderRadius:4, padding:"1px 6px" }}>
+            {w.status}
+          </span>
+        </div>
+        <p style={{ color:"#64748b", fontSize:11, margin:"4px 0 0", lineHeight:1.5 }}>{w.reason}</p>
+      </div>
     </div>
   );
 }
 
 function LocationCard({ loc }) {
-  const url = `https://marvel.fandom.com/wiki/${loc.wikiSlug || loc.name.replace(/\s+/g,"_")}`;
   return (
     <div style={{ background:"#0f172a", border:"1px solid #f97316aa", borderLeft:"3px solid #f97316", borderRadius:10, padding:"12px 14px" }}>
       <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
         <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:14 }}>📍 {loc.name}</span>
-        <a href={url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>
-          📖 Fandom
-        </a>
+        <a href={`https://marvel.fandom.com/wiki/${loc.wikiSlug||loc.name.replace(/\s+/g,"_")}`} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>📖 Fandom</a>
       </div>
       <p style={{ color:"#94a3b8", fontSize:12, margin:"8px 0 0", lineHeight:1.6 }}>{loc.description}</p>
     </div>
@@ -220,7 +274,7 @@ function ArtistCard({ artist, index }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
         <div>
           <div style={{ fontWeight:700, color:"#f1f5f9", fontSize:15 }}>{artist.name}</div>
-          <div style={{ fontSize:11, color: artist.inSnap ? "#4ade80" : "#fb923c", marginTop:3, fontWeight:600 }}>
+          <div style={{ fontSize:11, color:artist.inSnap?"#4ade80":"#fb923c", marginTop:3, fontWeight:600 }}>
             {artist.inSnap ? "✅ Currently in Marvel SNAP" : "🌟 External — not yet in SNAP"}
           </div>
         </div>
@@ -241,49 +295,85 @@ function ArtistCard({ artist, index }) {
 function ConfidenceMeter({ score, theme }) {
   const color = score >= 75 ? "#4ade80" : score >= 50 ? "#facc15" : "#f87171";
   const label = score >= 75 ? "High Confidence" : score >= 50 ? "Moderate Confidence" : "Low Confidence";
-  const tds = getTDS(theme);
   return (
     <div style={{ background:"#1e293b", borderRadius:10, padding:"12px 16px", marginBottom:16 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
         <div>
           <span style={{ color:"#94a3b8", fontSize:13 }}>Season Confidence</span>
-          <span style={{ color:"#475569", fontSize:11, marginLeft:8 }}>
-            (Theme Demand: {tds}%)
-          </span>
+          <span style={{ color:"#475569", fontSize:11, marginLeft:8 }}>Theme Demand: {getTDS(theme)}%</span>
         </div>
         <span style={{ color, fontWeight:800, fontSize:20 }}>{score}% <span style={{ fontSize:12, fontWeight:400 }}>{label}</span></span>
       </div>
       <div style={{ background:"#0f172a", borderRadius:6, height:10, overflow:"hidden" }}>
         <div style={{ width:`${score}%`, height:"100%", background:color, borderRadius:6, transition:"width 1s ease" }} />
       </div>
-      <div style={{ fontSize:10, color:"#475569", marginTop:6 }}>
-        Score = (Theme Demand × 35%) + (Roster Recognizability × 40%) + (Pool Depth × 25%)
-      </div>
+      <div style={{ fontSize:10, color:"#475569", marginTop:5 }}>Theme Demand × 35% + Roster Recognizability × 40% + Pool Depth × 25%</div>
     </div>
   );
 }
 
-function ExportPanel({ data, theme }) {
+function SlackButton({ result, theme, confidence }) {
+  const [status, setStatus] = useState("idle"); // idle | sending | success | error
+  const [errMsg, setErrMsg] = useState("");
+
+  const handle = async () => {
+    setStatus("sending");
+    setErrMsg("");
+    try {
+      await sendToSlack(result, theme, confidence);
+      setStatus("success");
+      setTimeout(() => setStatus("idle"), 4000);
+    } catch (e) {
+      setErrMsg(e.message || "Unknown error");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 6000);
+    }
+  };
+
+  const configs = {
+    idle:    { bg:"#1a1a2e", border:"#4a4a8f", color:"#a78bfa", label:"📤 Send to Slack", cursor:"pointer" },
+    sending: { bg:"#1e1e3a", border:"#6366f1", color:"#818cf8", label:"⏳ Sending…",       cursor:"not-allowed" },
+    success: { bg:"#052e16", border:"#16a34a", color:"#4ade80", label:"✅ Posted to #snap-season-brainstorming", cursor:"default" },
+    error:   { bg:"#1c0a0a", border:"#dc2626", color:"#f87171", label:"❌ Failed — retry?", cursor:"pointer" },
+  };
+  const cfg = configs[status];
+
+  return (
+    <div>
+      <button onClick={status === "sending" ? undefined : handle} style={{
+        padding:"9px 18px", borderRadius:8, border:`1px solid ${cfg.border}`,
+        background:cfg.bg, color:cfg.color, fontWeight:700, fontSize:13,
+        cursor:cfg.cursor, transition:"all 0.2s", display:"flex", alignItems:"center", gap:6
+      }}>
+        {cfg.label}
+      </button>
+      {status === "error" && errMsg && <div style={{ fontSize:11, color:"#f87171", marginTop:4 }}>{errMsg}</div>}
+    </div>
+  );
+}
+
+function ExportPanel({ data, theme, confidence }) {
   const btn = (color, label, fn) => (
     <button onClick={fn} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12, background:color, color:"#fff" }}>{label}</button>
   );
   return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:16 }}>
-      {btn("#3b82f6","⬇ JSON", () => exportJSON(data, theme))}
-      {btn("#10b981","⬇ CSV",  () => exportCSV(data, theme))}
-      {btn("#8b5cf6","📋 Copy for Sheets", () => copySheets(data))}
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:16, alignItems:"center" }}>
+      {btn("#3b82f6","⬇ JSON",()=>exportJSON(data,theme))}
+      {btn("#10b981","⬇ CSV",()=>exportCSV(data,theme))}
+      {btn("#8b5cf6","📋 Copy for Sheets",()=>copySheets(data))}
+      <SlackButton result={data} theme={theme} confidence={confidence} />
     </div>
   );
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [theme, setTheme] = useState("");
+  const [theme, setTheme]     = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult]   = useState(null);
   const [confidence, setConfidence] = useState(null);
-  const [error, setError] = useState(null);
-  const [tab, setTab] = useState("roster");
+  const [error, setError]     = useState(null);
+  const [tab, setTab]         = useState("roster");
 
   const EXAMPLES = ["Dark Magic","Cosmic War","Street-Level Crime","Symbiote Invasion","Mythology","Time Travel","Young Heroes","Villains of Wakanda"];
 
@@ -291,79 +381,70 @@ export default function App() {
     if (!theme.trim()) return;
     setLoading(true); setResult(null); setError(null); setConfidence(null); setTab("roster");
     try {
-      const res = await fetch("/api/generate", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:4000,
-          system: SYSTEM_PROMPT,
-          messages:[{ role:"user", content: buildUserPrompt(theme) }]
-        })
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:4500, system:SYSTEM_PROMPT, messages:[{ role:"user", content:buildUserPrompt(theme) }] })
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error.message);
-      const raw = json.content?.find(b => b.type==="text")?.text || "";
-      const clean = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
-      const parsed = JSON.parse(clean);
-      const computedScore = computeConfidence(theme, parsed);
-      parsed.confidence = computedScore;
-      setResult(parsed);
-      setConfidence(computedScore);
-    } catch(e) {
-      setError(e.message || "Unknown error.");
-    } finally {
-      setLoading(false);
-    }
+      const raw = json.content?.find(b=>b.type==="text")?.text || "";
+      const parsed = JSON.parse(raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim());
+      const score = computeConfidence(theme, parsed);
+      parsed.confidence = score;
+      setResult(parsed); setConfidence(score);
+    } catch(e) { setError(e.message||"Unknown error."); }
+    finally { setLoading(false); }
   }, [theme]);
 
   const tabBtn = (id, label) => (
-    <button key={id} onClick={() => setTab(id)} style={{
+    <button key={id} onClick={()=>setTab(id)} style={{
       padding:"8px 18px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:13,
-      background: tab===id ? "#6366f1" : "#1e293b",
-      color: tab===id ? "#fff" : "#94a3b8", transition:"all 0.2s"
+      background:tab===id?"#6366f1":"#1e293b", color:tab===id?"#fff":"#94a3b8", transition:"all 0.2s"
     }}>{label}</button>
   );
-  const avgPop = (list) => list.length ? (list.reduce((s,c)=>s+c.popularityScore,0)/list.length).toFixed(1) : "–";
+  const avgPop = list => list.length ? (list.reduce((s,c)=>s+c.popularityScore,0)/list.length).toFixed(1) : "–";
   const viable = result && !result.viabilityNote?.includes("not viable");
+  const hasWishlist = viable && result.wishlistCharacters?.length > 0;
 
   return (
     <div style={{ minHeight:"100vh", background:"#020617", color:"#f1f5f9", fontFamily:"'Inter','Segoe UI',sans-serif", padding:24 }}>
+      {/* Header */}
       <div style={{ textAlign:"center", marginBottom:28 }}>
         <div style={{ fontSize:36, marginBottom:4 }}>⚡</div>
         <h1 style={{ margin:0, fontSize:26, fontWeight:800, background:"linear-gradient(90deg,#818cf8,#f472b6,#fb923c)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
           MARVEL SNAP Season Generator
         </h1>
         <p style={{ color:"#64748b", margin:"6px 0 0", fontSize:13 }}>
-          AI-powered season proposals · Survey-calibrated confidence · {UNUSED_CHARACTERS.length} characters loaded
+          AI-powered · Survey-calibrated confidence · Artist recs · Slack integration · {UNUSED_CHARACTERS.length} characters
         </p>
       </div>
 
+      {/* Input */}
       <div style={{ maxWidth:640, margin:"0 auto 24px" }}>
         <div style={{ display:"flex", gap:10, marginBottom:12 }}>
-          <input value={theme} onChange={e => setTheme(e.target.value)} onKeyDown={e => e.key==="Enter" && generate()}
+          <input value={theme} onChange={e=>setTheme(e.target.value)} onKeyDown={e=>e.key==="Enter"&&generate()}
             placeholder='Enter a theme e.g. "Dark Magic" or "Cosmic War"'
             style={{ flex:1, padding:"12px 16px", borderRadius:10, border:"1px solid #334155", background:"#0f172a", color:"#f1f5f9", fontSize:14, outline:"none" }} />
-          <button onClick={generate} disabled={loading || !theme.trim()}
-            style={{ padding:"12px 20px", borderRadius:10, border:"none", cursor: loading?"not-allowed":"pointer",
-              background: loading?"#374151":"linear-gradient(135deg,#6366f1,#8b5cf6)",
-              color:"#fff", fontWeight:700, fontSize:14, whiteSpace:"nowrap" }}>
+          <button onClick={generate} disabled={loading||!theme.trim()}
+            style={{ padding:"12px 20px", borderRadius:10, border:"none", cursor:loading?"not-allowed":"pointer",
+              background:loading?"#374151":"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", fontWeight:700, fontSize:14, whiteSpace:"nowrap" }}>
             {loading ? "⏳ Analyzing…" : "🎴 Generate"}
           </button>
         </div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-          {EXAMPLES.map(t => (
-            <button key={t} onClick={() => setTheme(t)}
+          {EXAMPLES.map(t=>(
+            <button key={t} onClick={()=>setTheme(t)}
               style={{ padding:"4px 10px", borderRadius:20, border:"1px solid #334155", background:"#0f172a", color:"#94a3b8", fontSize:11, cursor:"pointer" }}>{t}</button>
           ))}
         </div>
       </div>
 
+      {/* Loading */}
       {loading && (
         <div style={{ maxWidth:640, margin:"0 auto", textAlign:"center", padding:40 }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
           <p style={{ color:"#94a3b8" }}>Analyzing {UNUSED_CHARACTERS.length} characters for: <strong style={{ color:"#818cf8" }}>{theme}</strong></p>
-          <p style={{ color:"#475569", fontSize:12 }}>Scoring thematic relevance, popularity, synergy, artist fit…</p>
+          <p style={{ color:"#475569", fontSize:12 }}>Scoring relevance · Building roster · Selecting artists · Checking grant coverage…</p>
           <div style={{ margin:"20px auto", width:200, height:4, background:"#1e293b", borderRadius:4, overflow:"hidden" }}>
             <div style={{ width:"60%", height:"100%", background:"linear-gradient(90deg,#6366f1,#8b5cf6)", borderRadius:4, animation:"slide 1.5s infinite" }} />
           </div>
@@ -386,14 +467,21 @@ export default function App() {
         </div>
       )}
 
+      {/* Results */}
       {viable && (
         <div style={{ maxWidth:920, margin:"0 auto" }}>
+          {/* Season header */}
           <div style={{ background:"linear-gradient(135deg,#1e1b4b,#0f172a)", border:"1px solid #4338ca", borderRadius:16, padding:24, marginBottom:20, textAlign:"center" }}>
             <div style={{ fontSize:11, color:"#818cf8", textTransform:"uppercase", letterSpacing:2, marginBottom:6 }}>Season Proposal</div>
             <h2 style={{ margin:"0 0 4px", fontSize:28, fontWeight:900, color:"#fff" }}>{result.seasonName}</h2>
             <div style={{ color:"#a5b4fc", fontSize:13, marginBottom:10 }}>"{result.suggestedTitle}"</div>
             <p style={{ color:"#cbd5e1", fontSize:13, lineHeight:1.7, maxWidth:600, margin:"0 auto 16px" }}>{result.pitch}</p>
-            <ConfidenceMeter score={confidence ?? result.confidence} theme={theme} />
+            <ConfidenceMeter score={confidence??result.confidence} theme={theme} />
+            {hasWishlist && (
+              <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left" }}>
+                <span style={{ color:"#fb923c", fontWeight:700, fontSize:12 }}>⚠️ Grant partially insufficient — {result.wishlistCharacters.length} wishlist character{result.wishlistCharacters.length>1?"s":""} needed. See Roster tab.</span>
+              </div>
+            )}
             {result.keyArtComposition && (
               <div style={{ background:"#0f172a", borderRadius:8, padding:10, fontSize:12, color:"#94a3b8", textAlign:"left" }}>
                 🎨 <strong style={{ color:"#f1f5f9" }}>Key Art:</strong> {result.keyArtComposition}
@@ -401,6 +489,7 @@ export default function App() {
             )}
           </div>
 
+          {/* Tabs */}
           <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
             {tabBtn("roster","🃏 Roster")}
             {tabBtn("artists","🎨 Artists")}
@@ -409,53 +498,90 @@ export default function App() {
             {tabBtn("meta","📊 Meta")}
           </div>
 
+          {/* ── ROSTER TAB ── */}
           {tab==="roster" && (
             <div>
+              {/* Season Pass */}
               <div style={{ marginBottom:20 }}>
                 <h3 style={{ color:"#f59e0b", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>🏆 Season Pass Character</h3>
                 <CharacterCard char={result.seasonPass} tier="seasonPass" />
                 {result.backupSeasonPass?.length > 0 && (
                   <div style={{ marginTop:8, fontSize:12, color:"#64748b" }}>
-                    Backup candidates: {result.backupSeasonPass.map(n => <span key={n} style={{ color:"#94a3b8", marginRight:8 }}>• {n}</span>)}
+                    Backup candidates: {result.backupSeasonPass.map(n=><span key={n} style={{ color:"#94a3b8", marginRight:8 }}>• {n}</span>)}
                   </div>
                 )}
               </div>
+
+              {/* Series 5 */}
               <div style={{ marginBottom:20 }}>
                 <h3 style={{ color:"#818cf8", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>
                   ⭐ Series 5 — {result.series5.length} Characters
                   <span style={{ color:"#475569", fontWeight:400, marginLeft:8 }}>Avg Popularity: {avgPop(result.series5)}</span>
                 </h3>
                 <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
-                  {result.series5.map(c => <CharacterCard key={c.name} char={c} tier="series5" />)}
+                  {result.series5.map(c=><CharacterCard key={c.name} char={c} tier="series5" />)}
                 </div>
               </div>
+
+              {/* Series 4 */}
               <div style={{ marginBottom:20 }}>
                 <h3 style={{ color:"#34d399", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>
                   💎 Series 4 — {result.series4.length} Characters
                   <span style={{ color:"#475569", fontWeight:400, marginLeft:8 }}>Avg Popularity: {avgPop(result.series4)}</span>
                 </h3>
                 <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
-                  {result.series4.map(c => <CharacterCard key={c.name} char={c} tier="series4" />)}
+                  {result.series4.map(c=><CharacterCard key={c.name} char={c} tier="series4" />)}
                 </div>
               </div>
-              <ExportPanel data={result} theme={theme} />
+
+              {/* Variant Suggestions */}
+              {result.variantSuggestions?.length > 0 && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <h3 style={{ color:"#a78bfa", fontSize:13, textTransform:"uppercase", letterSpacing:1, margin:0 }}>
+                      🎨 Variant Suggestions — Existing SNAP Cards
+                    </h3>
+                    <span style={{ fontSize:11, color:"#475569", background:"#1e293b", borderRadius:20, padding:"2px 10px" }}>Already in game · New art only</span>
+                  </div>
+                  <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
+                    {result.variantSuggestions.map(v=><VariantCard key={v.name} v={v} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Wishlist — Last Resort */}
+              {hasWishlist && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:10, padding:"12px 16px", marginBottom:12 }}>
+                    <div style={{ color:"#fb923c", fontWeight:700, fontSize:13, marginBottom:4 }}>⚠️ Grant Insufficient — Wishlist Characters</div>
+                    <p style={{ color:"#92400e", fontSize:12, margin:0, lineHeight:1.5 }}>
+                      The current grant list doesn't fully support this theme. The characters below would strengthen the season but are not in the grant.
+                      Red = requires a new Marvel request. Orange = already exists in SNAP but not in grant.
+                    </p>
+                  </div>
+                  <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
+                    {result.wishlistCharacters.map(w=><WishlistCard key={w.name} w={w} />)}
+                  </div>
+                </div>
+              )}
+
+              <ExportPanel data={result} theme={theme} confidence={confidence??result.confidence} />
             </div>
           )}
 
+          {/* ── ARTISTS TAB ── */}
           {tab==="artists" && (
             <div>
-              <div style={{ marginBottom:16 }}>
-                <h3 style={{ color:"#f472b6", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>🎨 Recommended Artists</h3>
-                <p style={{ color:"#475569", fontSize:12, margin:"0 0 16px" }}>
-                  3 artists whose visual style best matches <strong style={{ color:"#818cf8" }}>{result.seasonName}</strong>'s aesthetic and key art direction.
-                  Green badge = already in SNAP · Orange badge = external artist not yet in SNAP.
-                </p>
-              </div>
-              <div style={{ display:"grid", gap:12, gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))" }}>
-                {(result.artistRecommendations || []).map((a, i) => <ArtistCard key={a.name} artist={a} index={i} />)}
+              <h3 style={{ color:"#f472b6", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>🎨 Recommended Artists</h3>
+              <p style={{ color:"#475569", fontSize:12, margin:"0 0 16px" }}>
+                3 artists whose visual style best matches <strong style={{ color:"#818cf8" }}>{result.seasonName}</strong>'s aesthetic.
+                Green = already in SNAP · Orange = external, not yet in SNAP.
+              </p>
+              <div style={{ display:"grid", gap:12, gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", marginBottom:16 }}>
+                {(result.artistRecommendations||[]).map((a,i)=><ArtistCard key={a.name} artist={a} index={i} />)}
               </div>
               {result.keyArtComposition && (
-                <div style={{ marginTop:16, background:"#0f172a", border:"1px solid #1e293b", borderRadius:10, padding:14 }}>
+                <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:10, padding:14 }}>
                   <div style={{ color:"#818cf8", fontSize:11, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>🖼 Key Art Direction</div>
                   <p style={{ color:"#94a3b8", fontSize:13, margin:0, lineHeight:1.7 }}>{result.keyArtComposition}</p>
                 </div>
@@ -463,21 +589,23 @@ export default function App() {
             </div>
           )}
 
+          {/* ── LOCATIONS TAB ── */}
           {tab==="locations" && (
             <div>
               <h3 style={{ color:"#f97316", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>📍 Season Locations</h3>
               <p style={{ color:"#475569", fontSize:12, margin:"0 0 16px" }}>4 canonical Marvel locations defining the season's aesthetic and narrative.</p>
               <div style={{ display:"grid", gap:10, gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", marginBottom:16 }}>
-                {(result.locations || []).map(loc => <LocationCard key={loc.name} loc={loc} />)}
+                {(result.locations||[]).map(loc=><LocationCard key={loc.name} loc={loc} />)}
               </div>
-              <ExportPanel data={result} theme={theme} />
+              <ExportPanel data={result} theme={theme} confidence={confidence??result.confidence} />
             </div>
           )}
 
+          {/* ── MECHANICS TAB ── */}
           {tab==="mechanics" && (
             <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:12, padding:24 }}>
               <h3 style={{ color:"#f1f5f9", marginTop:0 }}>⚙️ Mechanical Hooks for SNAP Gameplay</h3>
-              {result.mechanicalHooks?.map((hook, i) => (
+              {result.mechanicalHooks?.map((hook,i)=>(
                 <div key={i} style={{ display:"flex", gap:12, marginBottom:14 }}>
                   <div style={{ width:28, height:28, borderRadius:"50%", background:"#1e293b", display:"flex", alignItems:"center", justifyContent:"center", color:"#818cf8", fontWeight:700, flexShrink:0, fontSize:12 }}>{i+1}</div>
                   <p style={{ color:"#cbd5e1", margin:0, lineHeight:1.7, fontSize:14 }}>{hook}</p>
@@ -492,6 +620,7 @@ export default function App() {
             </div>
           )}
 
+          {/* ── META TAB ── */}
           {tab==="meta" && (
             <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:12, padding:24 }}>
               <h3 style={{ color:"#f1f5f9", marginTop:0 }}>📊 Season Metadata</h3>
@@ -500,12 +629,14 @@ export default function App() {
                   ["Theme Input", theme],
                   ["Season Name", result.seasonName],
                   ["Title Tagline", result.suggestedTitle],
-                  ["Confidence (Survey-calibrated)", `${confidence ?? result.confidence}%`],
-                  ["Theme Demand Score", `${getTDS(theme)}% (from player survey)`],
-                  ["Total Characters", 1 + result.series5.length + result.series4.length],
+                  ["Confidence (Survey-calibrated)", `${confidence??result.confidence}%`],
+                  ["Theme Demand Score", `${getTDS(theme)}% (player survey)`],
+                  ["Total New Characters", 1+result.series5.length+result.series4.length],
+                  ["Variant Suggestions", result.variantSuggestions?.length ?? 0],
+                  ["Wishlist Characters", result.wishlistCharacters?.length ?? 0],
                   ["Season Pass", result.seasonPass?.name],
                   ["Locations", (result.locations||[]).map(l=>l.name).join(", ")],
-                ].map(([label, value]) => (
+                ].map(([label,value])=>(
                   <div key={label} style={{ background:"#1e293b", borderRadius:8, padding:12 }}>
                     <div style={{ color:"#475569", fontSize:11, marginBottom:2 }}>{label}</div>
                     <div style={{ color:"#f1f5f9", fontSize:13, fontWeight:600 }}>{value}</div>
@@ -514,36 +645,36 @@ export default function App() {
               </div>
               <div style={{ marginBottom:16 }}>
                 <div style={{ color:"#94a3b8", fontSize:12, marginBottom:8 }}>Recognizability — Series 5</div>
-                {result.series5.map(c => (
+                {result.series5.map(c=>(
                   <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:5 }}>
                     <div style={{ width:150, fontSize:11, color:"#64748b", flexShrink:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
                     <div style={{ flex:1, background:"#1e293b", borderRadius:4, height:7 }}>
                       <div style={{ width:`${(c.recognizabilityScore??0)*10}%`, height:"100%", background:"#818cf8", borderRadius:4 }} />
                     </div>
-                    <div style={{ width:24, fontSize:11, color:"#818cf8", textAlign:"right" }}>{c.recognizabilityScore ?? "–"}</div>
+                    <div style={{ width:24, fontSize:11, color:"#818cf8", textAlign:"right" }}>{c.recognizabilityScore??"–"}</div>
                   </div>
                 ))}
               </div>
               <div style={{ marginBottom:16 }}>
                 <div style={{ color:"#94a3b8", fontSize:12, marginBottom:8 }}>Recognizability — Series 4</div>
-                {result.series4.map(c => (
+                {result.series4.map(c=>(
                   <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:5 }}>
                     <div style={{ width:150, fontSize:11, color:"#64748b", flexShrink:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</div>
                     <div style={{ flex:1, background:"#1e293b", borderRadius:4, height:7 }}>
                       <div style={{ width:`${(c.recognizabilityScore??0)*10}%`, height:"100%", background:"#34d399", borderRadius:4 }} />
                     </div>
-                    <div style={{ width:24, fontSize:11, color:"#34d399", textAlign:"right" }}>{c.recognizabilityScore ?? "–"}</div>
+                    <div style={{ width:24, fontSize:11, color:"#34d399", textAlign:"right" }}>{c.recognizabilityScore??"–"}</div>
                   </div>
                 ))}
               </div>
-              <ExportPanel data={result} theme={theme} />
+              <ExportPanel data={result} theme={theme} confidence={confidence??result.confidence} />
             </div>
           )}
         </div>
       )}
 
       <div style={{ textAlign:"center", marginTop:40, color:"#334155", fontSize:11 }}>
-        Marvel SNAP Season Generator v2 · Survey-Calibrated Confidence · Claude AI · {UNUSED_CHARACTERS.length} Characters
+        Marvel SNAP Season Generator v3 · Survey-Calibrated · Variants · Wishlist · Slack · {UNUSED_CHARACTERS.length} Characters
       </div>
     </div>
   );
