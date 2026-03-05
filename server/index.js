@@ -3,7 +3,6 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { google } from "googleapis";
 
 const app = express();
 app.use(cors());
@@ -35,78 +34,6 @@ function saveLogsToFile() {
   try { fs.writeFileSync(LOGS_FILE, JSON.stringify(searchLogs, null, 2)); } catch {}
 }
 
-// ===== GOOGLE SHEETS CHARACTER DATA ================================
-const GRANT_SHEET_ID = "1ZMx87XYuw_72vkLjygkCSAnJwTpIz_Z4UPvwjoflUzY";
-const GRANT_RANGE    = "Unused Characters!A:A";
-const SNAP_SHEET_ID  = "1kLFsyYieH0It5uEdirrzwOXvs7O8UyfbEbfJhSdKp68";
-const SNAP_RANGE     = "Card Truth!A:A";
-
-let characterCache = null;
-let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-function getGoogleAuth() {
-  const credJson = process.env.GOOGLE_SERVICE_ACCOUNT;
-  if (!credJson) throw new Error("No GOOGLE_SERVICE_ACCOUNT env var set");
-  const credentials = JSON.parse(credJson);
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-}
-
-async function fetchSheetColumn(sheetId, range) {
-  const auth = getGoogleAuth();
-  const sheets = google.sheets({ version: "v4", auth });
-  const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range });
-  // Skip header row, flatten, filter blanks
-  return (response.data.values || []).slice(1).map(row => row[0]).filter(Boolean);
-}
-
-function normalizeName(name) {
-  return String(name).toLowerCase()
-    .replace(/\s*\(.*?\)/g, "")
-    .replace(/\s*\[.*?\]/g, "")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
-}
-
-async function loadCharacterData() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT) {
-    console.warn("[SNAP] No GOOGLE_SERVICE_ACCOUNT — character data will use frontend fallback.");
-    return null;
-  }
-  try {
-    const [grantRaw, snapRaw] = await Promise.all([
-      fetchSheetColumn(GRANT_SHEET_ID, GRANT_RANGE),
-      fetchSheetColumn(SNAP_SHEET_ID, SNAP_RANGE),
-    ]);
-    const snapNormalized = new Set(snapRaw.map(normalizeName));
-    // unusedNewCards = in grant AND not already in SNAP
-    const unusedNewCards = grantRaw.filter(n => !snapNormalized.has(normalizeName(n)));
-    console.log(`[SNAP] Loaded ${grantRaw.length} grant chars, ${snapRaw.length} SNAP cards, ${unusedNewCards.length} unused new cards.`);
-    return { grantChars: grantRaw, snapCards: snapRaw, unusedNewCards };
-  } catch (err) {
-    console.error("[SNAP] Failed to load character data:", err.message);
-    return null;
-  }
-}
-
-async function getCharacterData(forceRefresh = false) {
-  if (!forceRefresh && characterCache && (Date.now() - cacheTime) < CACHE_TTL) {
-    return characterCache;
-  }
-  const data = await loadCharacterData();
-  if (data) {
-    characterCache = data;
-    cacheTime = Date.now();
-  }
-  return characterCache;
-}
-
-// Pre-load on startup (non-blocking)
-getCharacterData().catch(() => {});
-
 // ===== HTML UTILS =================================================
 function escHtml(str) {
   return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -114,24 +41,10 @@ function escHtml(str) {
 
 // ===== ROUTES =====================================================
 
-// Health check
-app.get("/", (_req, res) => res.send("SNAP Season Generator 🎴 Online"));
-
 // ── Auth check
 app.get("/api/auth", (req, res) => {
   if (!checkPassword(req)) return res.status(401).json({ ok: false });
   res.json({ ok: true });
-});
-
-// ── Character data (requires auth)
-app.get("/api/characters", async (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
-  try {
-    const data = await getCharacterData();
-    res.json({ ok: true, data: data || null });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // ── Generate (requires auth)
@@ -209,7 +122,7 @@ app.get("/api/logs", (req, res) => {
   res.json({ ok: true, logs: searchLogs });
 });
 
-// ── Log viewer HTML page (password via query param)
+// ── Log viewer HTML page
 app.get("/logs", (req, res) => {
   if (!checkPassword(req)) {
     return res.send(`<!DOCTYPE html>
@@ -289,21 +202,16 @@ app.get("/logs", (req, res) => {
   <h1>📊 Season Generator — Search Logs</h1>
   <div class="sub">
     ${searchLogs.length} search${searchLogs.length === 1 ? "" : "es"} logged &nbsp;·&nbsp;
-    <a href="/logs?password=${escHtml(pw)}">Refresh</a> &nbsp;·&nbsp;
-    <a href="/">Back to app</a>
+    <a href="/logs?password=${escHtml(pw)}">Refresh</a>
   </div>
   ${searchLogs.length === 0
     ? '<div class="empty">No searches logged yet. Generate a season to see it here!</div>'
     : `<table>
     <thead>
       <tr>
-        <th>Date (PT)</th>
-        <th>Theme</th>
-        <th>Season Name</th>
-        <th style="text-align:center">Confidence</th>
-        <th>Season Pass</th>
-        <th style="text-align:center">New Cards</th>
-        <th style="text-align:center">Variants</th>
+        <th>Date (PT)</th><th>Theme</th><th>Season Name</th>
+        <th style="text-align:center">Confidence</th><th>Season Pass</th>
+        <th style="text-align:center">New Cards</th><th style="text-align:center">Variants</th>
         <th style="text-align:center">Wishlist</th>
       </tr>
     </thead>
@@ -314,9 +222,10 @@ app.get("/logs", (req, res) => {
 });
 
 // ===== SERVE FRONTEND =============================================
+// NOTE: This must come AFTER all API/page routes so Express serves
+// the React app for all non-API paths (including "/").
 app.use(express.static(path.join(__dirname, "../dist")));
 
-// Catch-all fallback (Express 5 safe)
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
