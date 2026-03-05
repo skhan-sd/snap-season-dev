@@ -48,11 +48,37 @@ function annotateCharacter(char) {
   };
 }
 function annotateResult(parsed) {
+  const sp    = parsed.seasonPass ? annotateCharacter(parsed.seasonPass) : parsed.seasonPass;
+  const s5All = (parsed.series5 || []).map(annotateCharacter);
+  const s4All = (parsed.series4 || []).map(annotateCharacter);
+
+  // Clean: in grant, not already in SNAP — these go into the normal tier slots
+  const s5Clean = s5All.filter(c => !c._inSnap && !c._notInGrant);
+  const s4Clean = s4All.filter(c => !c._inSnap && !c._notInGrant);
+
+  // Already-in-SNAP characters that the AI put in new card slots → redirect to Variants
+  const snapRedirected = [...s5All, ...s4All]
+    .filter(c => c._inSnap)
+    .map(c => ({ name: c.name, reason: `Redirected from new card suggestion — already in SNAP. Thematic fit: ${c.thematicScore}/10.`, _redirected: true }));
+
+  // Not-in-grant characters → separate "Potential Grant Requests" section,
+  // sorted by combined score descending (highest priority first)
+  const grantRequestsAll = [...s5All, ...s4All]
+    .filter(c => c._notInGrant)
+    .sort((a, b) => (b.thematicScore + b.popularityScore) - (a.thematicScore + a.popularityScore));
+
+  // Only surface grant requests when the clean roster is thin (< 12 total)
+  const cleanCount = s5Clean.length + s4Clean.length;
+  const grantRequests = cleanCount < 12 ? grantRequestsAll : [];
+
   return {
     ...parsed,
-    seasonPass: parsed.seasonPass ? annotateCharacter(parsed.seasonPass) : parsed.seasonPass,
-    series5:    (parsed.series5 || []).map(annotateCharacter),
-    series4:    (parsed.series4 || []).map(annotateCharacter),
+    seasonPass:        sp,
+    series5:           s5Clean,
+    series4:           s4Clean,
+    variantSuggestions:[...(parsed.variantSuggestions || []), ...snapRedirected],
+    grantRequests,
+    _cleanCount:       cleanCount,
   };
 }
 
@@ -202,11 +228,20 @@ function buildSlackMessage(result, theme, confidence, submittedBy) {
   lines.push("");
   lines.push("`Series 4`");
   (result.series4 || []).forEach(c => lines.push(`• ${c.name}`));
-  if (result.variantSuggestions?.length) {
+  // Variants (AI suggestions only — not the redirected SNAP cards)
+  const aiVariants = (result.variantSuggestions || []).filter(v => !v._redirected);
+  if (aiVariants.length) {
     lines.push("");
     lines.push("`Variants`");
-    result.variantSuggestions.forEach(v => lines.push(`• ${v.name}`));
+    aiVariants.forEach(v => lines.push(`• ${v.name}`));
   }
+  // Grant Requests
+  if (result.grantRequests?.length) {
+    lines.push("");
+    lines.push("`📋 Potential Grant Requests`");
+    result.grantRequests.forEach(c => lines.push(`• ${c.name}`));
+  }
+  // Wishlist (legacy fallback)
   if (result.wishlistCharacters?.length) {
     lines.push("");
     lines.push("`⚠️ Wishlist (Grant Gaps)`");
@@ -216,6 +251,14 @@ function buildSlackMessage(result, theme, confidence, submittedBy) {
   lines.push(`🎨 *Artists:* ${(result.artistRecommendations || []).map(a => a.name).join(" · ")}`);
   lines.push(`📍 *Locations:* ${(result.locations || []).map(l => l.name).join(" · ")}`);
   return lines.join("\n");
+}
+
+function copySlackMessage(result, theme, confidence) {
+  const submittedBy = sessionStorage.getItem("snap-auth-name") || "Unknown";
+  const message = buildSlackMessage(result, theme, confidence, submittedBy);
+  return navigator.clipboard.writeText(message)
+    .then(() => true)
+    .catch(() => { throw new Error("Clipboard blocked"); });
 }
 
 async function sendToSlack(result, theme, confidence) {
@@ -370,14 +413,19 @@ function ConfidenceMeter({ score, theme }) {
 }
 
 function VariantCard({ v }) {
+  const borderColor = v._redirected ? "#dc2626" : "#7c3aed";
+  const icon = v._redirected ? "🔄" : "🎨";
   return (
-    <div style={{ background:"#0f172a", border:"1px solid #7c3aed44", borderLeft:"3px solid #7c3aed", borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
-      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>🎨</div>
+    <div style={{ background:"#0f172a", border:`1px solid ${borderColor}44`, borderLeft:`3px solid ${borderColor}`, borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"flex-start", gap:10 }}>
+      <div style={{ fontSize:16, flexShrink:0, marginTop:1 }}>{icon}</div>
       <div style={{ flex:1 }}>
         <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
           <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:13 }}>{v.name}</span>
           <a href={fandomUrl(v.name)} target="_blank" rel="noopener noreferrer"
             style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none" }}>📖 Fandom</a>
+          {v._redirected && (
+            <span style={{ fontSize:10, fontWeight:700, color:"#fca5a5", background:"#450a0a", borderRadius:4, padding:"1px 6px" }}>Moved from new card slot</span>
+          )}
         </div>
         <p style={{ color:"#64748b", fontSize:11, margin:"4px 0 0", lineHeight:1.5 }}>{v.reason}</p>
       </div>
@@ -419,10 +467,10 @@ function SlackButton({ result, theme, confidence }) {
     }
   };
   const configs = {
-    idle:    { bg:"#1a1a2e", border:"#4a4a8f", color:"#a78bfa", label:"📤 Send to Slack", cursor:"pointer" },
-    sending: { bg:"#1e1e3a", border:"#6366f1", color:"#818cf8", label:"⏳ Sending…",       cursor:"not-allowed" },
+    idle:    { bg:"#1a1a2e", border:"#4a4a8f", color:"#a78bfa", label:"📤 Send to Brainstorming Channel", cursor:"pointer" },
+    sending: { bg:"#1e1e3a", border:"#6366f1", color:"#818cf8", label:"⏳ Sending…",                      cursor:"not-allowed" },
     success: { bg:"#052e16", border:"#16a34a", color:"#4ade80", label:"✅ Posted to #snap-season-brainstorming", cursor:"default" },
-    error:   { bg:"#1c0a0a", border:"#dc2626", color:"#f87171", label:"❌ Failed — retry?", cursor:"pointer" },
+    error:   { bg:"#1c0a0a", border:"#dc2626", color:"#f87171", label:"❌ Failed — retry?",               cursor:"pointer" },
   };
   const cfg = configs[status];
   return (
@@ -439,6 +487,34 @@ function SlackButton({ result, theme, confidence }) {
   );
 }
 
+function CopySlackButton({ result, theme, confidence }) {
+  const [status, setStatus] = useState("idle");
+  const handle = async () => {
+    setStatus("copying");
+    try {
+      await copySlackMessage(result, theme, confidence);
+      setStatus("copied");
+      setTimeout(() => setStatus("idle"), 3000);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+  const label = status === "copying" ? "⏳ Copying…" : status === "copied" ? "✅ Copied!" : status === "error" ? "❌ Failed" : "💬 Copy for Slack Thread";
+  const color = status === "copied" ? "#4ade80" : status === "error" ? "#f87171" : "#94a3b8";
+  const bg    = status === "copied" ? "#052e16"  : status === "error" ? "#1c0a0a"  : "#1e293b";
+  const border= status === "copied" ? "#16a34a"  : status === "error" ? "#dc2626"  : "#334155";
+  return (
+    <button onClick={status === "copying" ? undefined : handle} style={{
+      padding:"9px 18px", borderRadius:8, border:`1px solid ${border}`,
+      background:bg, color, fontWeight:700, fontSize:13,
+      cursor: status === "copying" ? "not-allowed" : "pointer", transition:"all 0.2s"
+    }}>
+      {label}
+    </button>
+  );
+}
+
 function ExportPanel({ data, theme, confidence }) {
   const btn = (color, label, fn) => (
     <button onClick={fn} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12, background:color, color:"#fff" }}>{label}</button>
@@ -449,6 +525,7 @@ function ExportPanel({ data, theme, confidence }) {
       {btn("#10b981","⬇ CSV",  () => exportCSV(data, theme))}
       {btn("#8b5cf6","📋 Copy for Sheets", () => copySheets(data))}
       <SlackButton result={data} theme={theme} confidence={confidence} />
+      <CopySlackButton result={data} theme={theme} confidence={confidence} />
     </div>
   );
 }
@@ -560,15 +637,11 @@ export default function App() {
   const viable = result && !result.viabilityNote?.includes("not viable");
   const hasWishlist = viable && result.wishlistCharacters?.length > 0;
 
-  // Collect all flagged characters for summary banner
-  const allNewChars = viable ? [
-    result.seasonPass,
-    ...(result.series5 || []),
-    ...(result.series4 || []),
-  ].filter(Boolean) : [];
-  const inSnapFlags    = allNewChars.filter(c => c._inSnap);
-  const notGrantFlags  = allNewChars.filter(c => c._notInGrant);
-  const hasFlags       = inSnapFlags.length > 0 || notGrantFlags.length > 0;
+  // Count redirected cards for info banner
+  const snapRedirectedCount = viable
+    ? (result.variantSuggestions || []).filter(v => v._redirected).length
+    : 0;
+  const hasGrantRequests = viable && result.grantRequests?.length > 0;
 
   // ── Password gate ─────────────────────────────────────────────────────────
   if (!authed) {
@@ -684,20 +757,13 @@ export default function App() {
                 <span style={{ color:"#fb923c", fontWeight:700, fontSize:12 }}>⚠️ Grant partially insufficient — {result.wishlistCharacters.length} wishlist character{result.wishlistCharacters.length > 1 ? "s" : ""} needed. See Roster tab.</span>
               </div>
             )}
-            {hasFlags && (
-              <div style={{ background:"#1c0a0a", border:"1px solid #991b1b", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left" }}>
-                <div style={{ color:"#f87171", fontWeight:700, fontSize:12, marginBottom:4 }}>
-                  🚨 AI generated out-of-spec characters — review roster carefully
-                </div>
-                {inSnapFlags.length > 0 && (
-                  <div style={{ fontSize:11, color:"#fca5a5", marginBottom:2 }}>
-                    🚫 Already in SNAP ({inSnapFlags.length}): {inSnapFlags.map(c => c.name).join(", ")}
-                  </div>
+            {(snapRedirectedCount > 0 || hasGrantRequests) && (
+              <div style={{ background:"#0f172a", border:"1px solid #334155", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left", fontSize:11, color:"#64748b", lineHeight:1.6 }}>
+                {snapRedirectedCount > 0 && (
+                  <div>🔄 {snapRedirectedCount} character{snapRedirectedCount > 1 ? "s" : ""} already in SNAP — moved to Variants section automatically.</div>
                 )}
-                {notGrantFlags.length > 0 && (
-                  <div style={{ fontSize:11, color:"#fcd34d" }}>
-                    ⚠️ Not in Grant ({notGrantFlags.length}): {notGrantFlags.map(c => c.name).join(", ")}
-                  </div>
+                {hasGrantRequests && (
+                  <div>📋 {result.grantRequests.length} character{result.grantRequests.length > 1 ? "s" : ""} outside the grant list — see Potential Grant Requests below.</div>
                 )}
               </div>
             )}
@@ -759,14 +825,49 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {/* Wishlist — Last Resort */}
+              {/* Potential Grant Requests — not-in-grant chars the AI suggested, shown only when roster is thin */}
+              {result.grantRequests?.length > 0 && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ background:"#1c1200", border:"1px solid #854d0e", borderRadius:10, padding:"12px 16px", marginBottom:12 }}>
+                    <div style={{ color:"#fbbf24", fontWeight:700, fontSize:13, marginBottom:4 }}>📋 Potential Grant Requests</div>
+                    <p style={{ color:"#a16207", fontSize:12, margin:0, lineHeight:1.5 }}>
+                      The grant list doesn't have enough characters to fully fill this theme — {result._cleanCount} of 15 slots filled from grant.
+                      The characters below are outside the current grant and would need to be requested from Marvel.
+                      Ordered by priority (thematic fit + popularity).
+                    </p>
+                  </div>
+                  <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
+                    {result.grantRequests.map(c => (
+                      <div key={c.name} style={{ background:"#0f172a", border:"1px solid #854d0e44", borderLeft:"3px solid #d97706", borderRadius:10, padding:"12px 14px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                              <span style={{ fontWeight:700, color:"#f1f5f9", fontSize:14 }}>{c.name}</span>
+                              <a href={fandomUrl(c.name)} target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize:10, color:"#60a5fa", background:"#1e3a5f", borderRadius:4, padding:"1px 6px", textDecoration:"none", whiteSpace:"nowrap" }}>📖 Fandom</a>
+                              <span style={{ fontSize:10, fontWeight:700, color:"#fbbf24", background:"#422006", borderRadius:4, padding:"1px 6px" }}>📋 Grant Request</span>
+                            </div>
+                            <div style={{ fontSize:11, color:"#d97706", marginTop:2 }}>Not in current grant · Needs Marvel approval</div>
+                          </div>
+                          <div style={{ textAlign:"right", marginLeft:8 }}>
+                            <div style={{ fontSize:18, fontWeight:800, color:"#d97706" }}>{((c.thematicScore + c.popularityScore)/2).toFixed(1)}</div>
+                            <div style={{ fontSize:10, color:"#64748b" }}>AVG</div>
+                          </div>
+                        </div>
+                        <p style={{ color:"#64748b", fontSize:12, marginTop:8, marginBottom:0, lineHeight:1.6 }}>{c.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Wishlist — AI's own last-resort suggestions when grant is insufficient */}
               {hasWishlist && (
                 <div style={{ marginBottom:20 }}>
                   <div style={{ background:"#1c0f00", border:"1px solid #92400e", borderRadius:10, padding:"12px 16px", marginBottom:12 }}>
-                    <div style={{ color:"#fb923c", fontWeight:700, fontSize:13, marginBottom:4 }}>⚠️ Grant Insufficient — Wishlist Characters</div>
+                    <div style={{ color:"#fb923c", fontWeight:700, fontSize:13, marginBottom:4 }}>⚠️ Additional Wishlist Characters</div>
                     <p style={{ color:"#92400e", fontSize:12, margin:0, lineHeight:1.5 }}>
-                      The current grant list doesn't fully support this theme. The characters below would strengthen the season but are not in the grant.
-                      Red = requires a new Marvel request. Orange = already exists in SNAP but not in grant.
+                      Extra characters the AI flagged as strong thematic fits that aren't in the grant.
+                      Red = requires a new Marvel request. Orange = already in SNAP.
                     </p>
                   </div>
                   <div style={{ display:"grid", gap:8, gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))" }}>
