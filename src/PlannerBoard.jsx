@@ -2,19 +2,19 @@ import { useState, useEffect, useCallback } from "react";
 
 // ─── Theme categories with colors ────────────────────────────────────────────
 const THEME_CATEGORIES = [
-  { id: "spider",      label: "Spider-Man",      color: "#dc2626" },
-  { id: "xmen",        label: "X-Men / Mutants",  color: "#7c3aed" },
-  { id: "avengers",    label: "Avengers",          color: "#1d4ed8" },
-  { id: "cosmic",      label: "Cosmic / Space",    color: "#0891b2" },
-  { id: "magic",       label: "Magic / Mystical",  color: "#9333ea" },
-  { id: "street",      label: "Street Level",      color: "#15803d" },
-  { id: "villain",     label: "Villains",          color: "#b91c1c" },
-  { id: "horror",      label: "Horror / Dark",     color: "#78350f" },
-  { id: "scifi",       label: "Sci-Fi / Tech",     color: "#0369a1" },
-  { id: "classic",     label: "Classic Marvel",    color: "#a16207" },
-  { id: "event",       label: "Events / Crossover",color: "#be185d" },
-  { id: "marvel383",   label: "Marvel 383 (SNAP Original)", color: "#4f46e5" },
-  { id: "other",       label: "Other",             color: "#475569" },
+  { id: "spider",    label: "Spider-Man",             color: "#dc2626" },
+  { id: "xmen",      label: "X-Men / Mutants",        color: "#7c3aed" },
+  { id: "avengers",  label: "Avengers",               color: "#1d4ed8" },
+  { id: "cosmic",    label: "Cosmic / Space",          color: "#0891b2" },
+  { id: "magic",     label: "Magic / Mystical",        color: "#9333ea" },
+  { id: "street",    label: "Street Level",            color: "#15803d" },
+  { id: "villain",   label: "Villains",                color: "#b91c1c" },
+  { id: "horror",    label: "Horror / Dark",           color: "#92400e" },
+  { id: "scifi",     label: "Sci-Fi / Tech",           color: "#0369a1" },
+  { id: "classic",   label: "Classic Marvel",          color: "#a16207" },
+  { id: "event",     label: "Events / Crossover",      color: "#be185d" },
+  { id: "marvel383", label: "Marvel 383 (SNAP Original)", color: "#4f46e5" },
+  { id: "other",     label: "Other",                   color: "#475569" },
 ];
 
 const STATUS_OPTIONS = [
@@ -25,13 +25,13 @@ const STATUS_OPTIONS = [
 ];
 
 const GRANT_OPTIONS = [
-  { id: "in_grant",   label: "✅ In-Grant",       color: "#4ade80" },
-  { id: "pending",    label: "⏳ Pending Grant",  color: "#facc15" },
-  { id: "not_feasible", label: "🚫 Not Feasible", color: "#f87171" },
-  { id: "tbd",        label: "❓ TBD",            color: "#94a3b8" },
+  { id: "in_grant",     label: "✅ In-Grant",      color: "#4ade80" },
+  { id: "pending",      label: "⏳ Pending Grant", color: "#facc15" },
+  { id: "not_feasible", label: "🚫 Not Feasible",  color: "#f87171" },
+  { id: "tbd",          label: "❓ TBD",           color: "#94a3b8" },
 ];
 
-// Generate 30 months starting from Jan 2025
+// Generate 36 months starting from Jan 2025
 function generateMonths() {
   const months = [];
   const start = new Date(2025, 0, 1);
@@ -46,11 +46,11 @@ function generateMonths() {
 }
 const MONTHS = generateMonths();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const API_PW = () => sessionStorage.getItem("planner-pw") || "";
+// ─── API helpers ──────────────────────────────────────────────────────────────
+const getPlannerPw = () => sessionStorage.getItem("planner-edit-pw") || "";
 
 async function apiFetch(path, opts = {}) {
-  const pw = API_PW();
+  const pw = getPlannerPw();
   const res = await fetch(path, {
     ...opts,
     headers: {
@@ -68,72 +68,74 @@ async function apiFetch(path, opts = {}) {
 function getCategoryInfo(id) {
   return THEME_CATEGORIES.find(c => c.id === id) || THEME_CATEGORIES[THEME_CATEGORIES.length - 1];
 }
+function getStatusInfo(id)  { return STATUS_OPTIONS.find(s => s.id === id) || STATUS_OPTIONS[0]; }
+function getGrantInfo(id)   { return GRANT_OPTIONS.find(g => g.id === id) || GRANT_OPTIONS[GRANT_OPTIONS.length - 1]; }
 
-function getStatusInfo(id) {
-  return STATUS_OPTIONS.find(s => s.id === id) || STATUS_OPTIONS[0];
-}
-
-function getGrantInfo(id) {
-  return GRANT_OPTIONS.find(g => g.id === id) || GRANT_OPTIONS[GRANT_OPTIONS.length - 1];
-}
-
-// ─── Empty Season Template ────────────────────────────────────────────────────
+// ─── Empty templates ──────────────────────────────────────────────────────────
 function emptySeason(monthKey) {
   return {
     monthKey: monthKey || "",
-    name: "",
-    theme: "",
-    themeCategory: "other",
-    is383: false,
-    status: "idea",
-    grantViability: "tbd",
-    characters: "",
-    seasonPass: "",
-    confidence: 50,
+    name: "", theme: "", themeCategory: "other", is383: false,
+    status: "idea", grantViability: "tbd",
+    characters: "", seasonPass: "",
+    aiConfidence: null, confidenceOverride: null,
     recognizability: 50,
-    slackUrl: "",
-    notes: "",
-    deadlines: {
-      brainstorming: "",
-      characterFinalization: "",
-      seasonLock: "",
-    },
+    slackUrl: "", notes: "",
+    deadlines: { brainstorming: "", characterFinalization: "", seasonLock: "" },
   };
 }
-
 function emptyIdea() {
   return {
-    name: "",
-    theme: "",
-    themeCategory: "other",
-    is383: false,
+    name: "", theme: "", themeCategory: "other", is383: false,
     grantViability: "tbd",
-    confidence: 50,
-    notes: "",
-    priority: 50,
+    aiConfidence: null, confidenceOverride: null,
+    priority: 50, notes: "", characters: "", seasonPass: "",
   };
 }
 
+// Effective confidence value
+function effectiveConfidence(item) {
+  if (item.confidenceOverride !== null && item.confidenceOverride !== undefined) return item.confidenceOverride;
+  if (item.aiConfidence !== null && item.aiConfidence !== undefined) return item.aiConfidence;
+  return 50;
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const inputStyle = {
+  width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #334155",
+  background: "#1e293b", color: "#f1f5f9", fontSize: 13, outline: "none",
+  boxSizing: "border-box", fontFamily: "inherit",
+};
+const labelStyle = {
+  display: "block", marginBottom: 6, fontSize: 11, fontWeight: 600,
+  color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em",
+};
+
+function FormRow({ label, children, half }) {
+  return (
+    <div style={{ marginBottom: 14, ...(half ? { flex: 1, minWidth: 0 } : {}) }}>
+      {label && <label style={labelStyle}>{label}</label>}
+      {children}
+    </div>
+  );
+}
+function FormGrid({ children }) { return <div style={{ display: "flex", gap: 12 }}>{children}</div>; }
+
 // ─── Modal ────────────────────────────────────────────────────────────────────
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, wide }) {
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000,
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
         background: "#0f172a", border: "1px solid #334155", borderRadius: 16,
-        padding: 28, width: "100%", maxWidth: 680, maxHeight: "90vh",
+        padding: 28, width: "100%", maxWidth: wide ? 800 : 680, maxHeight: "92vh",
         overflowY: "auto", position: "relative",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 18, color: "#f1f5f9" }}>{title}</div>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", color: "#64748b", fontSize: 20,
-            cursor: "pointer", lineHeight: 1, padding: "0 4px",
-          }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748b", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         {children}
       </div>
@@ -141,27 +143,117 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-// ─── Form components ──────────────────────────────────────────────────────────
-const inputStyle = {
-  width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #334155",
-  background: "#1e293b", color: "#f1f5f9", fontSize: 13, outline: "none",
-  boxSizing: "border-box", fontFamily: "inherit",
-};
+// ─── Confidence field (AI ref + manual override) ──────────────────────────────
+function ConfidenceField({ aiConfidence, confidenceOverride, onChange }) {
+  const hasAi       = aiConfidence !== null && aiConfidence !== undefined;
+  const isOverridden = confidenceOverride !== null && confidenceOverride !== undefined;
+  const displayVal  = isOverridden ? confidenceOverride : (hasAi ? aiConfidence : 50);
 
-const labelStyle = { display: "block", marginBottom: 6, fontSize: 11, fontWeight: 600,
-  color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" };
-
-function FormRow({ label, children, half }) {
   return (
-    <div style={{ marginBottom: 14, ...(half ? { flex: 1 } : {}) }}>
-      {label && <label style={labelStyle}>{label}</label>}
-      {children}
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <label style={labelStyle}>
+          Confidence: <span style={{
+            color: displayVal >= 70 ? "#4ade80" : displayVal >= 40 ? "#facc15" : "#f87171",
+            fontWeight: 800, fontSize: 13,
+          }}>{displayVal}%</span>
+          {isOverridden && <span style={{ color: "#f472b6", fontSize: 10, marginLeft: 6 }}>✏️ Override</span>}
+          {hasAi && !isOverridden && <span style={{ color: "#818cf8", fontSize: 10, marginLeft: 6 }}>🤖 AI</span>}
+        </label>
+        <div style={{ display: "flex", gap: 6 }}>
+          {hasAi && (
+            <div style={{ fontSize: 10, color: "#64748b" }}>
+              🤖 AI suggested: <span style={{ color: "#818cf8", fontWeight: 700 }}>{aiConfidence}%</span>
+            </div>
+          )}
+          {isOverridden && (
+            <button onClick={() => onChange({ confidenceOverride: null })} style={{
+              background: "none", border: "1px solid #334155", color: "#94a3b8",
+              borderRadius: 4, padding: "1px 7px", cursor: "pointer", fontSize: 10,
+            }}>↩ Reset to AI</button>
+          )}
+        </div>
+      </div>
+      <input type="range" min={0} max={100}
+        value={displayVal}
+        onChange={e => onChange({ confidenceOverride: +e.target.value })}
+        style={{ width: "100%", accentColor: "#6366f1" }}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#334155", marginTop: 2 }}>
+        <span>Low</span><span>Medium</span><span>High</span>
+      </div>
     </div>
   );
 }
 
-function FormGrid({ children }) {
-  return <div style={{ display: "flex", gap: 12 }}>{children}</div>;
+// ─── Import from Season Generator section ────────────────────────────────────
+function ImportFromGenerator({ onImport }) {
+  const [open, setOpen] = useState(false);
+  const [raw, setRaw] = useState("");
+  const [err, setErr] = useState("");
+
+  const parse = () => {
+    setErr("");
+    try {
+      const data = JSON.parse(raw.trim());
+      // Extract fields from Season Generator output
+      const chars = [
+        ...(data.series5 || []).map(c => c.name),
+        ...(data.series4 || []).map(c => c.name),
+      ].join(", ");
+      const ai = typeof data.confidence === "number" ? data.confidence : null;
+      onImport({
+        name:             data.seasonName    || "",
+        theme:            data.theme         || "",
+        seasonPass:       data.seasonPass?.name || "",
+        characters:       chars,
+        aiConfidence:     ai,
+        confidenceOverride: null,
+        notes:            data.pitch         || "",
+      });
+      setOpen(false);
+      setRaw("");
+    } catch {
+      setErr("Could not parse JSON — paste the raw output from the Season Generator.");
+    }
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{
+        width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px dashed #334155",
+        background: "none", color: "#64748b", fontSize: 12, cursor: "pointer", marginBottom: 14,
+        textAlign: "left",
+      }}>
+        📥 Import data from Season Generator (paste JSON)
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 16, background: "#0a1628", border: "1px solid #1e3a5f", borderRadius: 10, padding: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#38bdf8", marginBottom: 8 }}>
+        📥 Import from Season Generator
+      </div>
+      <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
+        In the Season Generator, use <strong style={{ color: "#94a3b8" }}>⬇ CSV</strong> then copy the JSON from the browser console, or use the browser dev tools to copy the result object. Paste it below.
+      </div>
+      <textarea value={raw} onChange={e => setRaw(e.target.value)} placeholder='Paste Season Generator JSON here…'
+        style={{ ...inputStyle, minHeight: 90, resize: "vertical", fontSize: 11, fontFamily: "monospace" }} />
+      {err && <div style={{ color: "#f87171", fontSize: 11, marginTop: 4 }}>{err}</div>}
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button onClick={parse} disabled={!raw.trim()} style={{
+          padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+          background: "#0891b2", color: "#fff", fontSize: 12, fontWeight: 600,
+          opacity: raw.trim() ? 1 : 0.5,
+        }}>Parse & Fill Form</button>
+        <button onClick={() => { setOpen(false); setRaw(""); setErr(""); }} style={{
+          padding: "6px 12px", borderRadius: 6, border: "1px solid #334155",
+          background: "none", color: "#64748b", fontSize: 12, cursor: "pointer",
+        }}>Cancel</button>
+      </div>
+    </div>
+  );
 }
 
 // ─── Season Edit Modal ────────────────────────────────────────────────────────
@@ -171,6 +263,7 @@ function SeasonEditModal({ season, onSave, onDelete, onClose, isNew }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
   const setDeadline = (key, val) => setForm(f => ({ ...f, deadlines: { ...f.deadlines, [key]: val } }));
+  const handleImport = (fields) => setForm(f => ({ ...f, ...fields }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -188,7 +281,10 @@ function SeasonEditModal({ season, onSave, onDelete, onClose, isNew }) {
   const cat = getCategoryInfo(form.themeCategory);
 
   return (
-    <Modal title={isNew ? "➕ Add Season" : "✏️ Edit Season"} onClose={onClose}>
+    <Modal title={isNew ? "➕ Add Season" : "✏️ Edit Season"} onClose={onClose} wide>
+      {/* Import helper */}
+      <ImportFromGenerator onImport={handleImport} />
+
       <FormRow label="Month">
         <select value={form.monthKey} onChange={e => set("monthKey", e.target.value)} style={inputStyle}>
           <option value="">— Unscheduled —</option>
@@ -232,18 +328,18 @@ function SeasonEditModal({ season, onSave, onDelete, onClose, isNew }) {
         </label>
       </FormRow>
 
-      <FormGrid>
-        <FormRow label={`Confidence: ${form.confidence}%`} half>
-          <input type="range" min={0} max={100} value={form.confidence}
-            onChange={e => set("confidence", +e.target.value)}
-            style={{ width: "100%", accentColor: "#6366f1" }} />
-        </FormRow>
-        <FormRow label={`Recognizability: ${form.recognizability}%`} half>
-          <input type="range" min={0} max={100} value={form.recognizability}
-            onChange={e => set("recognizability", +e.target.value)}
-            style={{ width: "100%", accentColor: "#f472b6" }} />
-        </FormRow>
-      </FormGrid>
+      {/* Confidence with AI ref + override */}
+      <ConfidenceField
+        aiConfidence={form.aiConfidence}
+        confidenceOverride={form.confidenceOverride}
+        onChange={delta => setForm(f => ({ ...f, ...delta }))}
+      />
+
+      <FormRow label={`Recognizability: ${form.recognizability}%`}>
+        <input type="range" min={0} max={100} value={form.recognizability}
+          onChange={e => set("recognizability", +e.target.value)}
+          style={{ width: "100%", accentColor: "#f472b6" }} />
+      </FormRow>
 
       <FormRow label="Season Pass Character">
         <input style={inputStyle} value={form.seasonPass} onChange={e => set("seasonPass", e.target.value)} placeholder="e.g. Star-Lord" />
@@ -255,22 +351,17 @@ function SeasonEditModal({ season, onSave, onDelete, onClose, isNew }) {
           placeholder="Gamora, Drax, Nebula, Rocket..." />
       </FormRow>
 
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10, marginTop: 4 }}>
-        Deadlines
-      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10, marginTop: 4 }}>Deadlines</div>
       <FormGrid>
         <FormRow label="Brainstorming Meeting" half>
-          <input type="date" style={inputStyle} value={form.deadlines?.brainstorming || ""}
-            onChange={e => setDeadline("brainstorming", e.target.value)} />
+          <input type="date" style={inputStyle} value={form.deadlines?.brainstorming || ""} onChange={e => setDeadline("brainstorming", e.target.value)} />
         </FormRow>
         <FormRow label="Character Finalization" half>
-          <input type="date" style={inputStyle} value={form.deadlines?.characterFinalization || ""}
-            onChange={e => setDeadline("characterFinalization", e.target.value)} />
+          <input type="date" style={inputStyle} value={form.deadlines?.characterFinalization || ""} onChange={e => setDeadline("characterFinalization", e.target.value)} />
         </FormRow>
       </FormGrid>
       <FormRow label="Season Lock Date">
-        <input type="date" style={{ ...inputStyle, maxWidth: 200 }} value={form.deadlines?.seasonLock || ""}
-          onChange={e => setDeadline("seasonLock", e.target.value)} />
+        <input type="date" style={{ ...inputStyle, maxWidth: 200 }} value={form.deadlines?.seasonLock || ""} onChange={e => setDeadline("seasonLock", e.target.value)} />
       </FormRow>
 
       <FormRow label="Slack Thread URL">
@@ -361,11 +452,11 @@ function IdeaEditModal({ idea, onSave, onDelete, onClose, isNew, onPromote }) {
         </FormRow>
       </FormGrid>
 
-      <FormRow label={`Confidence: ${form.confidence}%`}>
-        <input type="range" min={0} max={100} value={form.confidence}
-          onChange={e => set("confidence", +e.target.value)}
-          style={{ width: "100%", accentColor: "#6366f1" }} />
-      </FormRow>
+      <ConfidenceField
+        aiConfidence={form.aiConfidence}
+        confidenceOverride={form.confidenceOverride}
+        onChange={delta => setForm(f => ({ ...f, ...delta }))}
+      />
 
       <FormRow label="Marvel 383 / SNAP Original">
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: form.is383 ? "#818cf8" : "#94a3b8", fontSize: 13 }}>
@@ -412,16 +503,64 @@ function IdeaEditModal({ idea, onSave, onDelete, onClose, isNew, onPromote }) {
   );
 }
 
+// ─── Edit Mode Password Dialog ────────────────────────────────────────────────
+function EditModeDialog({ onSuccess, onClose }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const attempt = async () => {
+    setBusy(true); setErr("");
+    sessionStorage.setItem("planner-edit-pw", pw);
+    try {
+      const res = await fetch("/api/planner-auth", { headers: { "x-app-password": pw } });
+      const data = await res.json();
+      if (data.ok) { onSuccess(); }
+      else { setErr("Incorrect password."); sessionStorage.removeItem("planner-edit-pw"); }
+    } catch { setErr("Could not reach server."); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 14, padding: 28, width: 340, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>🔐</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 6 }}>Enter Edit Mode</div>
+        <div style={{ fontSize: 12, color: "#475569", marginBottom: 18 }}>A password is required to add or edit seasons and ideas.</div>
+        <input type="password" value={pw} onChange={e => setPw(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && pw && attempt()}
+          placeholder="Edit password"
+          autoFocus
+          style={{ ...inputStyle, textAlign: "center", marginBottom: 10 }} />
+        {err && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 8 }}>{err}</div>}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: 10, borderRadius: 8, border: "1px solid #334155",
+            background: "none", color: "#94a3b8", fontSize: 13, cursor: "pointer",
+          }}>Cancel</button>
+          <button onClick={attempt} disabled={busy || !pw} style={{
+            flex: 1, padding: 10, borderRadius: 8, border: "none",
+            background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
+            fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: (!pw || busy) ? 0.6 : 1,
+          }}>{busy ? "Checking…" : "Unlock"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Deadline Dots ────────────────────────────────────────────────────────────
 function DeadlineDots({ deadlines }) {
   if (!deadlines) return null;
   const today = new Date().toISOString().slice(0, 10);
   const items = [
-    { key: "brainstorming",        label: "Brainstorm",      color: "#38bdf8" },
-    { key: "characterFinalization", label: "Char. Final.",    color: "#fb923c" },
-    { key: "seasonLock",           label: "Season Lock",     color: "#f87171" },
+    { key: "brainstorming",         label: "Brainstorm",  color: "#38bdf8" },
+    { key: "characterFinalization", label: "Char. Final.", color: "#fb923c" },
+    { key: "seasonLock",            label: "Season Lock",  color: "#f87171" },
   ].filter(d => deadlines[d.key]);
-
   if (!items.length) return null;
   return (
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
@@ -431,9 +570,9 @@ function DeadlineDots({ deadlines }) {
         return (
           <div key={d.key} title={`${d.label}: ${deadlines[d.key]}`} style={{
             fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 700,
-            background: isPast ? "#1e293b" : isSoon ? d.color + "33" : "#1e293b",
-            color: isPast ? "#475569" : isSoon ? d.color : "#64748b",
-            border: `1px solid ${isPast ? "#1e293b" : d.color + "55"}`,
+            background: isPast ? "#1e293b" : isSoon ? d.color + "22" : "#1e293b",
+            color: isPast ? "#334155" : isSoon ? d.color : "#475569",
+            border: `1px solid ${isPast ? "#1e293b" : d.color + "44"}`,
           }}>
             {isSoon && "⚡ "}{d.label.split(" ")[0]}
           </div>
@@ -443,44 +582,40 @@ function DeadlineDots({ deadlines }) {
   );
 }
 
-// ─── Season Card (in timeline) ────────────────────────────────────────────────
-function SeasonCard({ season, onEdit, adjacentConflict }) {
-  const cat  = getCategoryInfo(season.themeCategory);
-  const stat = getStatusInfo(season.status);
+// ─── Season Card ──────────────────────────────────────────────────────────────
+function SeasonCard({ season, onEdit, adjacentConflict, editable }) {
+  const cat   = getCategoryInfo(season.themeCategory);
+  const stat  = getStatusInfo(season.status);
   const grant = getGrantInfo(season.grantViability);
   const chars = season.characters ? season.characters.split(/[,\n]+/).map(s => s.trim()).filter(Boolean) : [];
+  const conf  = effectiveConfidence(season);
 
   return (
-    <div onClick={() => onEdit(season)} style={{
+    <div onClick={() => editable && onEdit(season)} style={{
       background: "#0f172a",
       border: `1px solid ${season.status === "locked" ? "#16a34a" : "#1e293b"}`,
       borderLeft: `3px solid ${cat.color}`,
-      borderRadius: 10, padding: "10px 12px", cursor: "pointer", marginBottom: 8,
-      transition: "all 0.15s",
+      borderRadius: 10, padding: "10px 12px",
+      cursor: editable ? "pointer" : "default",
+      marginBottom: 8, transition: "background 0.15s",
       boxShadow: season.status === "locked" ? "0 0 0 1px #052e16" : "none",
     }}
-      onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
-      onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}
+      onMouseEnter={e => editable && (e.currentTarget.style.background = "#1e293b")}
+      onMouseLeave={e => (e.currentTarget.style.background = "#0f172a")}
     >
-      {/* Header row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9", lineHeight: 1.3 }}>
-            {season.is383 && <span title="Marvel 383 / SNAP Original" style={{ color: "#818cf8", marginRight: 4 }}>⬡</span>}
+            {season.is383 && <span title="Marvel 383" style={{ color: "#818cf8", marginRight: 4 }}>⬡</span>}
             {season.name || <span style={{ color: "#475569" }}>Unnamed Season</span>}
           </div>
-          {season.theme && (
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{season.theme}</div>
-          )}
+          {season.theme && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{season.theme}</div>}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
-          <div style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: stat.bg, color: stat.color, fontWeight: 700 }}>
-            {stat.label}
-          </div>
+        <div style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: stat.bg, color: stat.color, fontWeight: 700, flexShrink: 0 }}>
+          {stat.label}
         </div>
       </div>
 
-      {/* Category + Grant + conflict */}
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
         <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: cat.color + "22", color: cat.color, fontWeight: 700, border: `1px solid ${cat.color}44` }}>
           {cat.label}
@@ -488,72 +623,67 @@ function SeasonCard({ season, onEdit, adjacentConflict }) {
         <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, color: grant.color, fontWeight: 700, border: `1px solid ${grant.color}44` }}>
           {grant.label}
         </div>
-        {adjacentConflict && (
-          <div title="Adjacent season has the same theme category!" style={{ fontSize: 10, color: "#fb923c" }}>⚠️ Repeat Theme</div>
-        )}
+        {adjacentConflict && <div title="Adjacent season has same theme!" style={{ fontSize: 10, color: "#fb923c" }}>⚠️ Repeat Theme</div>}
       </div>
 
-      {/* Season Pass */}
       {season.seasonPass && (
         <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 5 }}>
-          🌟 Season Pass: <span style={{ color: "#fcd34d" }}>{season.seasonPass}</span>
+          🌟 <span style={{ color: "#fcd34d" }}>{season.seasonPass}</span>
         </div>
       )}
 
-      {/* Characters preview */}
       {chars.length > 0 && (
         <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 3 }}>
           {chars.slice(0, 8).map((c, i) => (
-            <div key={i} style={{ fontSize: 9, padding: "1px 5px", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#94a3b8" }}>
-              {c}
-            </div>
+            <div key={i} style={{ fontSize: 9, padding: "1px 5px", background: "#1e293b", border: "1px solid #334155", borderRadius: 4, color: "#94a3b8" }}>{c}</div>
           ))}
           {chars.length > 8 && <div style={{ fontSize: 9, color: "#475569" }}>+{chars.length - 8} more</div>}
         </div>
       )}
 
-      {/* Scores */}
       <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
         <div style={{ fontSize: 10, color: "#64748b" }}>
-          Confidence: <span style={{ color: season.confidence >= 70 ? "#4ade80" : season.confidence >= 40 ? "#facc15" : "#f87171", fontWeight: 700 }}>
-            {season.confidence}%
+          Confidence: <span style={{ color: conf >= 70 ? "#4ade80" : conf >= 40 ? "#facc15" : "#f87171", fontWeight: 700 }}>
+            {conf}%
           </span>
+          {season.confidenceOverride !== null && season.confidenceOverride !== undefined && (
+            <span style={{ color: "#f472b6", fontSize: 9, marginLeft: 4 }}>✏️</span>
+          )}
+          {season.aiConfidence !== null && season.aiConfidence !== undefined &&
+           (season.confidenceOverride === null || season.confidenceOverride === undefined) && (
+            <span style={{ color: "#818cf8", fontSize: 9, marginLeft: 4 }}>🤖</span>
+          )}
         </div>
         <div style={{ fontSize: 10, color: "#64748b" }}>
-          Recognizability: <span style={{ color: "#818cf8", fontWeight: 700 }}>{season.recognizability}%</span>
+          Recognizability: <span style={{ color: "#818cf8", fontWeight: 700 }}>{season.recognizability ?? 50}%</span>
         </div>
       </div>
 
-      {/* Deadlines */}
       <DeadlineDots deadlines={season.deadlines} />
 
-      {/* Slack link */}
       {season.slackUrl && (
         <div style={{ marginTop: 5 }}>
-          <a href={season.slackUrl} target="_blank" rel="noreferrer"
-            onClick={e => e.stopPropagation()}
-            style={{ fontSize: 10, color: "#6366f1" }}>
-            💬 Slack Thread
-          </a>
+          <a href={season.slackUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+            style={{ fontSize: 10, color: "#6366f1" }}>💬 Slack Thread</a>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Idea Card (in backlog) ───────────────────────────────────────────────────
-function IdeaCard({ idea, onEdit }) {
+// ─── Idea Card ────────────────────────────────────────────────────────────────
+function IdeaCard({ idea, onEdit, editable }) {
   const cat   = getCategoryInfo(idea.themeCategory);
   const grant = getGrantInfo(idea.grantViability);
+  const conf  = effectiveConfidence(idea);
 
   return (
-    <div onClick={() => onEdit(idea)} style={{
-      background: "#0f172a", border: "1px solid #1e293b",
-      borderLeft: `3px solid ${cat.color}`,
-      borderRadius: 10, padding: "10px 12px", cursor: "pointer", marginBottom: 8,
+    <div onClick={() => editable && onEdit(idea)} style={{
+      background: "#0f172a", border: "1px solid #1e293b", borderLeft: `3px solid ${cat.color}`,
+      borderRadius: 10, padding: "10px 12px", cursor: editable ? "pointer" : "default", marginBottom: 8,
     }}
-      onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
-      onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}
+      onMouseEnter={e => editable && (e.currentTarget.style.background = "#1e293b")}
+      onMouseLeave={e => (e.currentTarget.style.background = "#0f172a")}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: "#e2e8f0" }}>
@@ -564,109 +694,73 @@ function IdeaCard({ idea, onEdit }) {
       </div>
       {idea.theme && <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{idea.theme}</div>}
       <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: cat.color + "22", color: cat.color, fontWeight: 700 }}>
-          {cat.label}
-        </div>
-        <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, color: grant.color, fontWeight: 700, border: `1px solid ${grant.color}44` }}>
-          {grant.label}
-        </div>
+        <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: cat.color + "22", color: cat.color, fontWeight: 700 }}>{cat.label}</div>
+        <div style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, color: grant.color, fontWeight: 700, border: `1px solid ${grant.color}44` }}>{grant.label}</div>
       </div>
-      <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-        <div style={{ fontSize: 10, color: "#64748b" }}>
-          Confidence: <span style={{ color: idea.confidence >= 70 ? "#4ade80" : idea.confidence >= 40 ? "#facc15" : "#f87171", fontWeight: 700 }}>{idea.confidence}%</span>
-        </div>
+      <div style={{ fontSize: 10, color: "#64748b", marginTop: 6 }}>
+        Confidence: <span style={{ color: conf >= 70 ? "#4ade80" : conf >= 40 ? "#facc15" : "#f87171", fontWeight: 700 }}>{conf}%</span>
+        {idea.aiConfidence !== null && idea.aiConfidence !== undefined && <span style={{ color: "#818cf8", fontSize: 9, marginLeft: 4 }}>🤖</span>}
+        {idea.confidenceOverride !== null && idea.confidenceOverride !== undefined && <span style={{ color: "#f472b6", fontSize: 9, marginLeft: 4 }}>✏️</span>}
       </div>
       {idea.notes && <div style={{ fontSize: 10, color: "#475569", marginTop: 5, lineHeight: 1.4 }}>{idea.notes.slice(0, 100)}{idea.notes.length > 100 ? "…" : ""}</div>}
     </div>
   );
 }
 
-// ─── Login Screen ─────────────────────────────────────────────────────────────
-function PlannerLogin({ onLogin }) {
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const attempt = async () => {
-    setLoading(true); setErr("");
-    sessionStorage.setItem("planner-pw", pw);
-    try {
-      const data = await apiFetch("/api/auth");
-      if (data.ok) onLogin();
-      else { setErr("Incorrect password."); sessionStorage.removeItem("planner-pw"); }
-    } catch { setErr("Could not reach server."); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div style={{ minHeight: "100vh", background: "#020617", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter','Segoe UI',sans-serif" }}>
-      <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 16, padding: 40, width: "100%", maxWidth: 360, textAlign: "center" }}>
-        <div style={{ fontSize: 36, marginBottom: 10 }}>📅</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", marginBottom: 4 }}>Season Planning Board</div>
-        <div style={{ fontSize: 12, color: "#475569", marginBottom: 24 }}>Second Dinner internal use only</div>
-        <input type="password" value={pw} onChange={e => setPw(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && attempt()}
-          placeholder="Enter password"
-          style={{ ...inputStyle, marginBottom: 12, textAlign: "center" }}
-          autoFocus />
-        {err && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 8 }}>{err}</div>}
-        <button onClick={attempt} disabled={loading || !pw} style={{
-          width: "100%", padding: 12, borderRadius: 10, border: "none", cursor: "pointer",
-          background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff",
-          fontWeight: 700, fontSize: 14, opacity: (!pw || loading) ? 0.6 : 1,
-        }}>{loading ? "Checking…" : "🔐 Enter Board"}</button>
-        <div style={{ marginTop: 16 }}>
-          <a href="/" style={{ fontSize: 11, color: "#475569" }}>← Back to Season Generator</a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main PlannerBoard ────────────────────────────────────────────────────────
 export default function PlannerBoard() {
-  const [authed, setAuthed] = useState(false);
-  const [seasons, setSeasons] = useState([]);
-  const [ideas, setIdeas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [view, setView] = useState("timeline"); // "timeline" | "backlog"
+  const [seasons, setSeasons]   = useState([]);
+  const [ideas, setIdeas]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  const [view, setView]           = useState("timeline");
   const [editSeason, setEditSeason] = useState(null);
-  const [editIdea, setEditIdea] = useState(null);
+  const [editIdea, setEditIdea]   = useState(null);
   const [isNewSeason, setIsNewSeason] = useState(false);
   const [isNewIdea, setIsNewIdea] = useState(false);
-  const [ideaSort, setIdeaSort] = useState("priority");
+  const [ideaSort, setIdeaSort]   = useState("priority");
   const [filterCategory, setFilterCategory] = useState("all");
 
-  // Check if already authed in this session
-  useEffect(() => {
-    const pw = sessionStorage.getItem("planner-pw");
-    if (pw) {
-      apiFetch("/api/auth").then(d => { if (d.ok) setAuthed(true); }).catch(() => {});
-    }
-  }, []);
-
+  // Load data immediately — no auth needed
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await apiFetch("/api/planner");
+      const d = await fetch("/api/planner").then(r => r.json());
       setSeasons(d.seasons || []);
       setIdeas(d.ideas || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (authed) loadData(); }, [authed, loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Check if edit pw is already stored
+  useEffect(() => {
+    const pw = sessionStorage.getItem("planner-edit-pw");
+    if (pw) {
+      fetch("/api/planner-auth", { headers: { "x-app-password": pw } })
+        .then(r => r.json()).then(d => { if (d.ok) setEditMode(true); })
+        .catch(() => {});
+    }
+  }, []);
+
+  const requireEdit = (fn) => {
+    if (!editMode) { setShowEditDialog(true); return; }
+    fn();
+  };
 
   // ── Season CRUD
-  const openNewSeason = (monthKey) => {
+  const openNewSeason = (monthKey) => requireEdit(() => {
     setEditSeason(emptySeason(monthKey));
     setIsNewSeason(true);
-  };
+  });
 
-  const openEditSeason = (season) => {
+  const openEditSeason = (season) => requireEdit(() => {
     setEditSeason({ ...season });
     setIsNewSeason(false);
-  };
+  });
 
   const saveSeason = async (form) => {
     if (isNewSeason) {
@@ -684,15 +778,8 @@ export default function PlannerBoard() {
   };
 
   // ── Idea CRUD
-  const openNewIdea = () => {
-    setEditIdea(emptyIdea());
-    setIsNewIdea(true);
-  };
-
-  const openEditIdea = (idea) => {
-    setEditIdea({ ...idea });
-    setIsNewIdea(false);
-  };
+  const openNewIdea  = () => requireEdit(() => { setEditIdea(emptyIdea()); setIsNewIdea(true); });
+  const openEditIdea = (idea) => requireEdit(() => { setEditIdea({ ...idea }); setIsNewIdea(false); });
 
   const saveIdea = async (form) => {
     if (isNewIdea) {
@@ -709,22 +796,18 @@ export default function PlannerBoard() {
     setIdeas(prev => prev.filter(i => i.id !== id));
   };
 
-  // Promote idea → new scheduled season
   const promoteIdea = (idea) => {
-    setEditIdea(null);
     const s = emptySeason("");
-    s.name = idea.name;
-    s.theme = idea.theme;
-    s.themeCategory = idea.themeCategory;
-    s.is383 = idea.is383;
-    s.grantViability = idea.grantViability;
-    s.confidence = idea.confidence;
-    s.notes = idea.notes;
+    s.name = idea.name; s.theme = idea.theme; s.themeCategory = idea.themeCategory;
+    s.is383 = idea.is383; s.grantViability = idea.grantViability;
+    s.aiConfidence = idea.aiConfidence; s.confidenceOverride = idea.confidenceOverride;
+    s.notes = idea.notes; s.characters = idea.characters || ""; s.seasonPass = idea.seasonPass || "";
+    setEditIdea(null);
     setEditSeason(s);
     setIsNewSeason(true);
   };
 
-  // ── Conflict detection: same category in adjacent months
+  // ── Adjacent conflict detection
   const seasonsByMonth = {};
   seasons.forEach(s => {
     if (s.monthKey) {
@@ -745,18 +828,17 @@ export default function PlannerBoard() {
   };
 
   // ── Sorted ideas
-  const sortedIdeas = [...ideas].sort((a, b) => {
-    if (ideaSort === "priority") return b.priority - a.priority;
-    if (ideaSort === "confidence") return b.confidence - a.confidence;
-    if (ideaSort === "name") return (a.name || "").localeCompare(b.name || "");
-    return 0;
-  }).filter(i => filterCategory === "all" || i.themeCategory === filterCategory);
+  const sortedIdeas = [...ideas]
+    .filter(i => filterCategory === "all" || i.themeCategory === filterCategory)
+    .sort((a, b) => {
+      if (ideaSort === "priority")    return b.priority - a.priority;
+      if (ideaSort === "confidence")  return effectiveConfidence(b) - effectiveConfidence(a);
+      if (ideaSort === "name")        return (a.name || "").localeCompare(b.name || "");
+      return 0;
+    });
 
-  if (!authed) return <PlannerLogin onLogin={() => setAuthed(true)} />;
-
-  // ── Render
   const totalScheduled = seasons.filter(s => s.monthKey).length;
-  const totalLocked = seasons.filter(s => s.status === "locked").length;
+  const totalLocked    = seasons.filter(s => s.status === "locked").length;
 
   return (
     <div style={{ minHeight: "100vh", background: "#020617", fontFamily: "'Inter','Segoe UI',sans-serif", color: "#f1f5f9" }}>
@@ -770,13 +852,25 @@ export default function PlannerBoard() {
           }}>📅 Season Planning Board</div>
           <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>
             {totalScheduled} scheduled · {totalLocked} locked · {ideas.length} ideas in backlog
+            {editMode && <span style={{ color: "#4ade80", marginLeft: 8 }}>✏️ Edit Mode</span>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <a href="/" style={{ fontSize: 12, color: "#475569", textDecoration: "none", padding: "6px 12px", border: "1px solid #334155", borderRadius: 8 }}>
             ← Generator
           </a>
-          <button onClick={() => { setView("timeline"); }} style={{
+          {editMode ? (
+            <button onClick={() => { setEditMode(false); sessionStorage.removeItem("planner-edit-pw"); }} style={{
+              fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 600,
+              background: "#052e16", color: "#4ade80", border: "1px solid #16a34a",
+            }}>✏️ Edit Mode: ON</button>
+          ) : (
+            <button onClick={() => setShowEditDialog(true)} style={{
+              fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 600,
+              background: "none", color: "#64748b", border: "1px solid #334155",
+            }}>🔐 Edit Mode</button>
+          )}
+          <button onClick={() => setView("timeline")} style={{
             fontSize: 12, padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 600,
             background: view === "timeline" ? "#6366f1" : "none",
             color: view === "timeline" ? "#fff" : "#64748b",
@@ -791,38 +885,44 @@ export default function PlannerBoard() {
         </div>
       </div>
 
+      {/* Read-only banner */}
+      {!editMode && (
+        <div style={{ background: "#0a0f1e", borderBottom: "1px solid #1e293b", padding: "7px 24px", fontSize: 11, color: "#334155", textAlign: "center" }}>
+          👁 View-only mode — click <button onClick={() => setShowEditDialog(true)} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 11, fontWeight: 700, padding: 0 }}>🔐 Edit Mode</button> in the header to make changes
+        </div>
+      )}
+
       {/* Legend */}
-      <div style={{ background: "#0a0f1e", borderBottom: "1px solid #0f172a", padding: "8px 24px", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ fontSize: 10, color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>Categories:</div>
+      <div style={{ background: "#0a0f1e", borderBottom: "1px solid #0f172a", padding: "7px 24px", display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ fontSize: 10, color: "#334155", fontWeight: 700, textTransform: "uppercase" }}>Categories:</div>
         {THEME_CATEGORIES.map(c => (
           <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />
-            <div style={{ fontSize: 10, color: "#64748b" }}>{c.label}</div>
+            <div style={{ fontSize: 10, color: "#475569" }}>{c.label}</div>
           </div>
         ))}
-        <div style={{ marginLeft: "auto", fontSize: 10, color: "#475569" }}>
-          ⬡ = Marvel 383 &nbsp; ⚠️ = Repeat theme adjacent
+        <div style={{ marginLeft: "auto", fontSize: 10, color: "#334155" }}>
+          ⬡ = Marvel 383 &nbsp;⚠️ = Repeat adjacent &nbsp;🤖 = AI score &nbsp;✏️ = Manual override
         </div>
       </div>
 
       {loading && (
-        <div style={{ textAlign: "center", color: "#475569", padding: 40, fontSize: 13 }}>Loading…</div>
+        <div style={{ textAlign: "center", color: "#475569", padding: 60, fontSize: 13 }}>Loading…</div>
       )}
 
       {/* ── TIMELINE VIEW ── */}
       {view === "timeline" && !loading && (
         <div style={{ padding: "20px 24px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 0 }}>
-            {MONTHS.map((month, idx) => {
+          <div style={{ display: "grid", gridTemplateColumns: "155px 1fr", gap: 0 }}>
+            {MONTHS.map((month) => {
               const monthSeasons = (seasonsByMonth[month.key] || []);
               const isCurrentMonth = month.key === new Date().toISOString().slice(0, 7);
               return (
                 <div key={month.key} style={{ display: "contents" }}>
-                  {/* Month label */}
                   <div style={{
-                    padding: "12px 16px 12px 0",
+                    padding: "12px 14px 12px 0",
                     borderRight: `2px solid ${isCurrentMonth ? "#6366f1" : "#1e293b"}`,
-                    borderBottom: "1px solid #0f172a",
+                    borderBottom: "1px solid #0a0f1e",
                     display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
                   }}>
                     <div style={{ textAlign: "right" }}>
@@ -835,27 +935,20 @@ export default function PlannerBoard() {
                       {isCurrentMonth && <div style={{ fontSize: 9, color: "#6366f1", fontWeight: 700 }}>NOW</div>}
                     </div>
                   </div>
-
-                  {/* Season cards for this month */}
-                  <div style={{ padding: "10px 0 10px 16px", borderBottom: "1px solid #0f172a", minHeight: 60 }}>
+                  <div style={{ padding: "10px 0 10px 14px", borderBottom: "1px solid #0a0f1e", minHeight: 54 }}>
                     {monthSeasons.map(season => (
-                      <SeasonCard
-                        key={season.id}
-                        season={season}
-                        onEdit={openEditSeason}
-                        adjacentConflict={hasAdjacentConflict(season)}
-                      />
+                      <SeasonCard key={season.id} season={season} onEdit={openEditSeason}
+                        adjacentConflict={hasAdjacentConflict(season)} editable={editMode} />
                     ))}
-                    <button onClick={() => openNewSeason(month.key)} style={{
-                      background: "none", border: "1px dashed #1e293b", color: "#334155",
-                      borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer",
-                      width: "100%", textAlign: "left",
-                    }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#6366f1"; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = "#334155"; }}
-                    >
-                      + Add season for {month.label}
-                    </button>
+                    {editMode && (
+                      <button onClick={() => openNewSeason(month.key)} style={{
+                        background: "none", border: "1px dashed #1e293b", color: "#334155",
+                        borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", width: "100%", textAlign: "left",
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#6366f1"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; e.currentTarget.style.color = "#334155"; }}
+                      >+ Add season for {month.label}</button>
+                    )}
                   </div>
                 </div>
               );
@@ -870,34 +963,36 @@ export default function PlannerBoard() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>💡 Ideas Backlog</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {/* Filter by category */}
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ ...inputStyle, width: "auto", fontSize: 12 }}>
                 <option value="all">All Categories</option>
                 {THEME_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
-              {/* Sort */}
               <select value={ideaSort} onChange={e => setIdeaSort(e.target.value)} style={{ ...inputStyle, width: "auto", fontSize: 12 }}>
                 <option value="priority">Sort: Priority</option>
                 <option value="confidence">Sort: Confidence</option>
                 <option value="name">Sort: Name A–Z</option>
               </select>
-              <button onClick={openNewIdea} style={{
-                background: "linear-gradient(135deg,#f472b6,#818cf8)", border: "none",
-                color: "#fff", borderRadius: 8, padding: "8px 16px", cursor: "pointer",
-                fontSize: 12, fontWeight: 700,
-              }}>+ New Idea</button>
+              {editMode && (
+                <button onClick={openNewIdea} style={{
+                  background: "linear-gradient(135deg,#f472b6,#818cf8)", border: "none",
+                  color: "#fff", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                }}>+ New Idea</button>
+              )}
             </div>
           </div>
 
           {sortedIdeas.length === 0 ? (
             <div style={{ textAlign: "center", color: "#475569", padding: 60, fontSize: 13 }}>
-              No ideas yet. Click <strong style={{ color: "#f472b6" }}>+ New Idea</strong> to add one!
+              {ideas.length === 0
+                ? <>No ideas yet.{editMode ? <> Click <strong style={{ color: "#f472b6" }}>+ New Idea</strong> to add one!</> : " Enter edit mode to add ideas."}</>
+                : "No ideas match the current filter."
+              }
             </div>
           ) : (
             <div style={{ columns: "2 380px", gap: 16 }}>
               {sortedIdeas.map(idea => (
                 <div key={idea.id} style={{ breakInside: "avoid", marginBottom: 0 }}>
-                  <IdeaCard idea={idea} onEdit={openEditIdea} />
+                  <IdeaCard idea={idea} onEdit={openEditIdea} editable={editMode} />
                 </div>
               ))}
             </div>
@@ -905,37 +1000,34 @@ export default function PlannerBoard() {
         </div>
       )}
 
-      {/* Floating add button (timeline) */}
-      {view === "timeline" && (
+      {/* Floating add button (edit mode, timeline) */}
+      {view === "timeline" && editMode && (
         <button onClick={() => openNewSeason("")} style={{
           position: "fixed", bottom: 24, right: 24,
           background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none",
           color: "#fff", borderRadius: 12, padding: "12px 20px", cursor: "pointer",
           fontSize: 14, fontWeight: 700, boxShadow: "0 4px 20px rgba(99,102,241,0.4)",
-        }}>
-          + Add Season
-        </button>
+        }}>+ Add Season</button>
       )}
 
-      {/* Modals */}
-      {editSeason && (
-        <SeasonEditModal
-          season={editSeason}
-          isNew={isNewSeason}
-          onSave={saveSeason}
-          onDelete={deleteSeason}
-          onClose={() => setEditSeason(null)}
+      {/* Edit mode dialog */}
+      {showEditDialog && (
+        <EditModeDialog
+          onSuccess={() => { setEditMode(true); setShowEditDialog(false); }}
+          onClose={() => setShowEditDialog(false)}
         />
       )}
+
+      {/* Season modal */}
+      {editSeason && (
+        <SeasonEditModal season={editSeason} isNew={isNewSeason}
+          onSave={saveSeason} onDelete={deleteSeason} onClose={() => setEditSeason(null)} />
+      )}
+
+      {/* Idea modal */}
       {editIdea && (
-        <IdeaEditModal
-          idea={editIdea}
-          isNew={isNewIdea}
-          onSave={saveIdea}
-          onDelete={deleteIdea}
-          onClose={() => setEditIdea(null)}
-          onPromote={promoteIdea}
-        />
+        <IdeaEditModal idea={editIdea} isNew={isNewIdea}
+          onSave={saveIdea} onDelete={deleteIdea} onClose={() => setEditIdea(null)} onPromote={promoteIdea} />
       )}
     </div>
   );

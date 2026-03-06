@@ -12,13 +12,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ===== PASSWORD ====================================================
-const APP_PASSWORD = process.env.APP_PASSWORD || "BuffSilverSurfer";
+const APP_PASSWORD          = process.env.APP_PASSWORD          || "BuffSilverSurfer";
+const PLANNER_EDIT_PASSWORD = process.env.PLANNER_PASSWORD      || "BuffHela";
 
 function checkPassword(req) {
   const header = req.headers["x-app-password"];
   const query  = req.query?.password;
   return header === APP_PASSWORD || query === APP_PASSWORD;
 }
+
+// Planner write ops accept either password (generator users can also add to backlog)
+function checkPlannerWrite(req) {
+  const header = req.headers["x-app-password"];
+  const query  = req.query?.password;
+  return header === APP_PASSWORD || header === PLANNER_EDIT_PASSWORD ||
+         query  === APP_PASSWORD || query  === PLANNER_EDIT_PASSWORD;
+}
+
+// Auth endpoint for planner edit mode
+app.get("/api/planner-auth", (req, res) => {
+  const ok = checkPlannerWrite(req);
+  res.json({ ok });
+});
 
 // ===== LOGGING =====================================================
 const LOGS_FILE = path.join(__dirname, "logs.json");
@@ -257,15 +272,14 @@ function nextId(arr) {
   return arr.length === 0 ? 1 : Math.max(...arr.map(x => x.id || 0)) + 1;
 }
 
-// ── Get all planner data
+// ── Get all planner data (public — no auth needed)
 app.get("/api/planner", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
   res.json({ ok: true, seasons: plannerData.seasons, ideas: plannerData.ideas });
 });
 
 // ── Create season
 app.post("/api/planner/seasons", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const season = { id: nextId(plannerData.seasons), ...req.body, createdAt: new Date().toISOString() };
   plannerData.seasons.push(season);
   savePlanner();
@@ -274,7 +288,7 @@ app.post("/api/planner/seasons", (req, res) => {
 
 // ── Update season
 app.put("/api/planner/seasons/:id", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const id = parseInt(req.params.id);
   const idx = plannerData.seasons.findIndex(s => s.id === id);
   if (idx === -1) return res.status(404).json({ error: "Season not found" });
@@ -285,7 +299,7 @@ app.put("/api/planner/seasons/:id", (req, res) => {
 
 // ── Delete season
 app.delete("/api/planner/seasons/:id", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const id = parseInt(req.params.id);
   plannerData.seasons = plannerData.seasons.filter(s => s.id !== id);
   savePlanner();
@@ -294,7 +308,7 @@ app.delete("/api/planner/seasons/:id", (req, res) => {
 
 // ── Create idea
 app.post("/api/planner/ideas", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const idea = { id: nextId(plannerData.ideas), ...req.body, createdAt: new Date().toISOString() };
   plannerData.ideas.push(idea);
   savePlanner();
@@ -303,7 +317,7 @@ app.post("/api/planner/ideas", (req, res) => {
 
 // ── Update idea
 app.put("/api/planner/ideas/:id", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const id = parseInt(req.params.id);
   const idx = plannerData.ideas.findIndex(i => i.id === id);
   if (idx === -1) return res.status(404).json({ error: "Idea not found" });
@@ -314,7 +328,7 @@ app.put("/api/planner/ideas/:id", (req, res) => {
 
 // ── Delete idea
 app.delete("/api/planner/ideas/:id", (req, res) => {
-  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
   const id = parseInt(req.params.id);
   plannerData.ideas = plannerData.ideas.filter(i => i.id !== id);
   savePlanner();

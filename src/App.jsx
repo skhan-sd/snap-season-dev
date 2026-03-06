@@ -515,13 +515,70 @@ function CopySlackButton({ result, theme, confidence }) {
   );
 }
 
+function AddToBacklogButton({ data, theme, confidence }) {
+  const [status, setStatus] = useState("idle");
+
+  const handleClick = async () => {
+    if (status !== "idle") return;
+    setStatus("saving");
+    const pw = sessionStorage.getItem("snap-auth-pw") || "";
+    const chars = [
+      ...(data.series5 || []).map(c => c.name),
+      ...(data.series4 || []).map(c => c.name),
+    ].join(", ");
+    const idea = {
+      name: data.seasonName || theme,
+      theme: theme,
+      themeCategory: "other",
+      grantViability: "tbd",
+      confidence: confidence ?? 50,
+      aiConfidence: confidence ?? null,
+      priority: confidence ?? 50,
+      is383: false,
+      notes: [
+        data.seasonPass ? `Season Pass: ${data.seasonPass.name}` : "",
+        data.pitch ? `Pitch: ${data.pitch}` : "",
+      ].filter(Boolean).join("\n"),
+      characters: chars,
+      seasonPass: data.seasonPass?.name || "",
+    };
+    try {
+      const res = await fetch("/api/planner/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-app-password": pw },
+        body: JSON.stringify(idea),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setStatus("done");
+        setTimeout(() => setStatus("idle"), 3000);
+      } else {
+        setStatus("err");
+        setTimeout(() => setStatus("idle"), 3000);
+      }
+    } catch {
+      setStatus("err");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+
+  const labels = { idle: "📋 Add to Backlog", saving: "Saving…", done: "✅ Added to Backlog!", err: "⚠ Failed — retry?" };
+  const colors = { idle: "#0891b2", saving: "#334155", done: "#16a34a", err: "#dc2626" };
+  return (
+    <button onClick={handleClick} disabled={status === "saving"} style={{
+      padding:"8px 16px", borderRadius:8, border:"none", cursor: status === "saving" ? "not-allowed" : "pointer",
+      fontWeight:600, fontSize:12, background: colors[status], color:"#fff", transition:"background 0.2s",
+    }}>{labels[status]}</button>
+  );
+}
+
 function ExportPanel({ data, theme, confidence }) {
   const btn = (color, label, fn) => (
     <button onClick={fn} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12, background:color, color:"#fff" }}>{label}</button>
   );
   return (
     <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:16, alignItems:"center" }}>
-      {btn("#3b82f6","⬇ JSON", () => exportJSON(data, theme))}
+      <AddToBacklogButton data={data} theme={theme} confidence={confidence} />
       {btn("#10b981","⬇ CSV",  () => exportCSV(data, theme))}
       {btn("#8b5cf6","📋 Copy for Sheets", () => copySheets(data))}
       <SlackButton result={data} theme={theme} confidence={confidence} />
@@ -687,7 +744,13 @@ export default function App() {
 
   return (
     <div style={{ minHeight:"100vh", background:"#020617", color:"#f1f5f9", fontFamily:"'Inter','Segoe UI',sans-serif", padding:24 }}>
-      <div style={{ textAlign:"center", marginBottom:28 }}>
+      <div style={{ textAlign:"center", marginBottom:28, position:"relative" }}>
+        <a href="/planner" style={{
+          position:"absolute", right:0, top:0,
+          fontSize:12, color:"#6366f1", textDecoration:"none",
+          padding:"6px 12px", border:"1px solid #4338ca", borderRadius:8,
+          fontWeight:600, background:"#0f172a", display:"inline-flex", alignItems:"center", gap:5,
+        }}>📅 Planning Board →</a>
         <div style={{ fontSize:36, marginBottom:4 }}>⚡</div>
         <h1 style={{ margin:0, fontSize:26, fontWeight:800, background:"linear-gradient(90deg,#818cf8,#f472b6,#fb923c)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
           MARVEL SNAP Season Generator
