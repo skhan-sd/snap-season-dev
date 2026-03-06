@@ -86,6 +86,47 @@ app.post("/api/generate", async (req, res) => {
   }
 });
 
+// ── Evaluate a season roster (planner)
+app.post("/api/evaluate-season", async (req, res) => {
+  if (!checkPlannerWrite(req)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: "Missing ANTHROPIC_API_KEY" });
+    const { theme, seasonPass, characters } = req.body;
+
+    const charList = (characters || "").split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+    const prompt = `You are a Marvel SNAP game design consultant. Evaluate this proposed season roster.
+
+Theme: "${theme || "Unknown"}"
+Season Pass: ${seasonPass || "Not set"}
+Characters: ${charList.join(", ") || "None listed"}
+
+Rate this roster and return ONLY valid JSON with no markdown:
+{
+  "confidence": <0-100 integer: how well this roster fits the theme, how strong the season concept is>,
+  "recognizability": <0-100 integer: average casual-Marvel-fan recognizability of the full roster>,
+  "reasoning": "<1-2 sentence explanation of the scores>"
+}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 256,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const raw = data?.content?.[0]?.text || "{}";
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const scores = JSON.parse(clean);
+    res.json({ ok: true, confidence: scores.confidence ?? 50, recognizability: scores.recognizability ?? 50, reasoning: scores.reasoning || "" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Slack (requires auth)
 app.post("/api/slack", async (req, res) => {
   if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });

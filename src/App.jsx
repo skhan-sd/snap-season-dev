@@ -41,42 +41,53 @@ function avg(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.len
 // ── Flag characters that are out-of-grant or already in SNAP ─────────────────
 function annotateCharacter(char) {
   const norm = normalizeName(char.name || "");
+  const inSnap   = _snapNormSet.has(norm);
+  // Alt-universe versions (isAltVersion: true in AI output) are NOT flagged as out-of-grant
+  const isAlt    = !!char.isAltVersion;
+  const notInGrant = !isAlt && !_grantNormSet.has(norm) && !inSnap;
   return {
     ...char,
-    _inSnap:      _snapNormSet.has(norm),
-    _notInGrant:  !_grantNormSet.has(norm) && !_snapNormSet.has(norm),
+    _inSnap:      inSnap,
+    _notInGrant:  notInGrant,
+    _isAltVersion: isAlt,
   };
 }
 function annotateResult(parsed) {
-  const sp    = parsed.seasonPass ? annotateCharacter(parsed.seasonPass) : parsed.seasonPass;
+  const spRaw = parsed.seasonPass ? annotateCharacter(parsed.seasonPass) : null;
+  // Season Pass must be in grant and not already in SNAP
+  const spValid  = spRaw && !spRaw._inSnap && !spRaw._notInGrant;
+  const sp       = spValid ? spRaw : (spRaw ? { ...spRaw, _spInvalid: true } : null);
+
   const s5All = (parsed.series5 || []).map(annotateCharacter);
   const s4All = (parsed.series4 || []).map(annotateCharacter);
 
-  // Clean: in grant, not already in SNAP — these go into the normal tier slots
+  // Clean: in grant (or alt version), not already in SNAP
   const s5Clean = s5All.filter(c => !c._inSnap && !c._notInGrant);
   const s4Clean = s4All.filter(c => !c._inSnap && !c._notInGrant);
 
-  // Already-in-SNAP characters that the AI put in new card slots → redirect to Variants
+  // Already-in-SNAP characters → redirect to Variants
   const snapRedirected = [...s5All, ...s4All]
     .filter(c => c._inSnap)
     .map(c => ({ name: c.name, reason: `Redirected from new card suggestion — already in SNAP. Thematic fit: ${c.thematicScore}/10.`, _redirected: true }));
 
-  // Not-in-grant characters → separate "Potential Grant Requests" section,
-  // sorted by combined score descending (highest priority first)
+  // Not-in-grant, non-alt characters → Potential Grant Requests
   const grantRequestsAll = [...s5All, ...s4All]
     .filter(c => c._notInGrant)
     .sort((a, b) => (b.thematicScore + b.popularityScore) - (a.thematicScore + a.popularityScore));
 
-  // Only surface grant requests when the clean roster is thin (< 12 total)
   const cleanCount = s5Clean.length + s4Clean.length;
   const grantRequests = cleanCount < 12 ? grantRequestsAll : [];
+
+  // Variants: AI suggestions + SNAP-redirected, hard cap at 6 total
+  const aiVariants     = (parsed.variantSuggestions || []).slice(0, 6);
+  const allVariants    = [...aiVariants, ...snapRedirected].slice(0, 6);
 
   return {
     ...parsed,
     seasonPass:        sp,
     series5:           s5Clean,
     series4:           s4Clean,
-    variantSuggestions:[...(parsed.variantSuggestions || []), ...snapRedirected],
+    variantSuggestions: allVariants,
     grantRequests,
     _cleanCount:       cleanCount,
   };
@@ -84,14 +95,16 @@ function annotateResult(parsed) {
 
 function computeConfidence(theme, result) {
   const tds = getTDS(theme);
-  const spRec = (result.seasonPass.recognizabilityScore ?? 7) * 10;
+  const sp = result.seasonPass && !result.seasonPass._spInvalid ? result.seasonPass : null;
+  const spRec = (sp?.recognizabilityScore ?? 7) * 10;
   const s5Rec = avg((result.series5 || []).map(c => (c.recognizabilityScore ?? 5))) * 10;
   const s4Rec = avg((result.series4 || []).map(c => (c.recognizabilityScore ?? 3))) * 10;
   const rs = spRec * 0.50 + s5Rec * 0.35 + s4Rec * 0.15;
   let rds = 100;
   if ((result.series5 || []).length < 6) rds -= 15;
   if ((result.series4 || []).length < 7) rds -= 10;
-  if ((result.seasonPass.recognizabilityScore ?? 7) < 6) rds -= 20;
+  if (!sp) rds -= 25;
+  else if ((sp.recognizabilityScore ?? 7) < 6) rds -= 20;
   if ((result.locations || []).length === 4) rds += 10;
   rds = Math.max(0, Math.min(100, rds));
   return Math.round(tds * 0.35 + rs * 0.40 + rds * 0.25);
@@ -135,19 +148,24 @@ Recommend 3 artists whose style best fits this season's visual identity and key 
 - Be specific about WHY each artist's aesthetic matches this exact season's mood and characters.
 
 CRITICAL RULES FOR NEW CARD SELECTION:
-- ONLY select new cards from the "Full Unused Character List" provided in the user message. Do NOT suggest characters outside this list for new cards.
-- NEVER suggest a character as a new card if they are already a playable card in Marvel SNAP. The list provided is specifically filtered to exclude existing SNAP cards.
+- ONLY select new cards from the "Full Unused Character List" provided in the user message — OR — an alt-universe version of an existing character (see Alt Version rule below).
+- NEVER suggest a character as a new card if they are already a playable card in Marvel SNAP as that exact version.
 - Do NOT suggest fictional entities that are not actual Marvel Comics characters (no generic "demons", "robots", or unnamed entities).
 - For group names like "Avengers", "Eternals", or "X-Men" — these are teams, not individual characters. Do NOT use them as new card suggestions. Use individual members instead.
 - Locations can be any canonical Marvel location.
+
+ALT VERSION RULE (allowed):
+- You MAY suggest alt-universe or alternate-identity versions of existing SNAP cards if they are meaningfully different characters in Marvel Comics. Examples: Kluh (Hulk's dark alter ego), Jane Foster Thor, Goddess of Thunder, Miles Morales (Spider-Man), Ghost Spider, Ultimate versions, What If variants with distinct comic identities.
+- For any alt-version, set "isAltVersion": true and "altOf": "OriginalCharacterName" in the character object.
+- Only suggest alt-versions that have a real comic presence, not just cosmetic variants. They must add thematic value to the season.
 
 Return ONLY valid JSON (no markdown fences, no explanation):
 {
   "seasonName": "string",
   "pitch": "string (2-3 sentences)",
-  "seasonPass": { "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number },
-  "series5": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
-  "series4": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number }],
+  "seasonPass": { "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number, "isAltVersion": false, "altOf": null },
+  "series5": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number, "isAltVersion": false, "altOf": null }],
+  "series4": [{ "name": "string", "reason": "string", "popularityScore": number, "thematicScore": number, "recognizabilityScore": number, "isAltVersion": false, "altOf": null }],
   "variantSuggestions": [{ "name": "string", "reason": "string (why this card suits the season's art style)" }],
   "wishlistCharacters": [{ "name": "string", "reason": "string", "status": "Needs Marvel Request" | "Already in SNAP" }],
   "locations": [{ "name": "string", "description": "string", "wikiSlug": "string" }],
@@ -299,15 +317,20 @@ function CharacterCard({ char, tier }) {
   const c = tColors[tier];
   const avg = ((char.thematicScore + char.popularityScore) / 2).toFixed(1);
   // Warning badges for out-of-spec characters
-  const borderColor = char._inSnap ? "#dc2626" : char._notInGrant ? "#d97706" : c;
+  const borderColor = char._inSnap ? "#dc2626" : char._spInvalid ? "#dc2626" : char._notInGrant ? "#d97706" : char._isAltVersion ? "#06b6d4" : c;
   return (
     <div style={{ background:"#0f172a", border:`1px solid ${borderColor}44`, borderLeft:`3px solid ${borderColor}`, borderRadius:10, padding:"12px 14px" }}>
-      {char._inSnap && (
+      {(char._inSnap || char._spInvalid) && (
         <div style={{ background:"#450a0a", border:"1px solid #dc2626", borderRadius:6, padding:"4px 10px", marginBottom:8, fontSize:11, color:"#fca5a5", fontWeight:700 }}>
           🚫 Already in SNAP — this character is already a playable card
         </div>
       )}
-      {char._notInGrant && (
+      {char._isAltVersion && (
+        <div style={{ background:"#0c2533", border:"1px solid #0891b2", borderRadius:6, padding:"4px 10px", marginBottom:8, fontSize:11, color:"#67e8f9", fontWeight:700 }}>
+          🔀 Alt Version{char.altOf ? ` of ${char.altOf}` : ""} — distinct comic character, not an exact SNAP duplicate
+        </div>
+      )}
+      {char._notInGrant && !char._isAltVersion && (
         <div style={{ background:"#422006", border:"1px solid #d97706", borderRadius:6, padding:"4px 10px", marginBottom:8, fontSize:11, color:"#fcd34d", fontWeight:700 }}>
           ⚠️ Not in Grant — this character is outside the Second Dinner grant list
         </div>
@@ -699,6 +722,10 @@ export default function App() {
     ? (result.variantSuggestions || []).filter(v => v._redirected).length
     : 0;
   const hasGrantRequests = viable && result.grantRequests?.length > 0;
+  const altVersionCount  = viable
+    ? [...(result.series5 || []), ...(result.series4 || [])].filter(c => c._isAltVersion).length
+    : 0;
+  const spInvalid = viable && result.seasonPass?._spInvalid;
 
   // ── Password gate ─────────────────────────────────────────────────────────
   if (!authed) {
@@ -820,8 +847,14 @@ export default function App() {
                 <span style={{ color:"#fb923c", fontWeight:700, fontSize:12 }}>⚠️ Grant partially insufficient — {result.wishlistCharacters.length} wishlist character{result.wishlistCharacters.length > 1 ? "s" : ""} needed. See Roster tab.</span>
               </div>
             )}
-            {(snapRedirectedCount > 0 || hasGrantRequests) && (
+            {(snapRedirectedCount > 0 || hasGrantRequests || altVersionCount > 0 || spInvalid) && (
               <div style={{ background:"#0f172a", border:"1px solid #334155", borderRadius:8, padding:"10px 14px", marginBottom:12, textAlign:"left", fontSize:11, color:"#64748b", lineHeight:1.6 }}>
+                {spInvalid && (
+                  <div>🚫 Season Pass character is already in SNAP — please select a different character as Season Pass.</div>
+                )}
+                {altVersionCount > 0 && (
+                  <div>🔀 {altVersionCount} alt-universe character{altVersionCount > 1 ? "s" : ""} suggested — distinct comic identities allowed under current rules.</div>
+                )}
                 {snapRedirectedCount > 0 && (
                   <div>🔄 {snapRedirectedCount} character{snapRedirectedCount > 1 ? "s" : ""} already in SNAP — moved to Variants section automatically.</div>
                 )}
