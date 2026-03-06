@@ -237,6 +237,90 @@ app.get("/logs", (req, res) => {
 </html>`);
 });
 
+// ===== PLANNER ====================================================
+const PLANNER_FILE = path.join(__dirname, "planner.json");
+let plannerData = { seasons: [], ideas: [] };
+
+try {
+  if (fs.existsSync(PLANNER_FILE)) {
+    plannerData = JSON.parse(fs.readFileSync(PLANNER_FILE, "utf8"));
+    if (!plannerData.seasons) plannerData.seasons = [];
+    if (!plannerData.ideas)   plannerData.ideas   = [];
+  }
+} catch { plannerData = { seasons: [], ideas: [] }; }
+
+function savePlanner() {
+  try { fs.writeFileSync(PLANNER_FILE, JSON.stringify(plannerData, null, 2)); } catch {}
+}
+
+function nextId(arr) {
+  return arr.length === 0 ? 1 : Math.max(...arr.map(x => x.id || 0)) + 1;
+}
+
+// ── Get all planner data
+app.get("/api/planner", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  res.json({ ok: true, seasons: plannerData.seasons, ideas: plannerData.ideas });
+});
+
+// ── Create season
+app.post("/api/planner/seasons", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const season = { id: nextId(plannerData.seasons), ...req.body, createdAt: new Date().toISOString() };
+  plannerData.seasons.push(season);
+  savePlanner();
+  res.json({ ok: true, season });
+});
+
+// ── Update season
+app.put("/api/planner/seasons/:id", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const id = parseInt(req.params.id);
+  const idx = plannerData.seasons.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: "Season not found" });
+  plannerData.seasons[idx] = { ...plannerData.seasons[idx], ...req.body, id, updatedAt: new Date().toISOString() };
+  savePlanner();
+  res.json({ ok: true, season: plannerData.seasons[idx] });
+});
+
+// ── Delete season
+app.delete("/api/planner/seasons/:id", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const id = parseInt(req.params.id);
+  plannerData.seasons = plannerData.seasons.filter(s => s.id !== id);
+  savePlanner();
+  res.json({ ok: true });
+});
+
+// ── Create idea
+app.post("/api/planner/ideas", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const idea = { id: nextId(plannerData.ideas), ...req.body, createdAt: new Date().toISOString() };
+  plannerData.ideas.push(idea);
+  savePlanner();
+  res.json({ ok: true, idea });
+});
+
+// ── Update idea
+app.put("/api/planner/ideas/:id", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const id = parseInt(req.params.id);
+  const idx = plannerData.ideas.findIndex(i => i.id === id);
+  if (idx === -1) return res.status(404).json({ error: "Idea not found" });
+  plannerData.ideas[idx] = { ...plannerData.ideas[idx], ...req.body, id, updatedAt: new Date().toISOString() };
+  savePlanner();
+  res.json({ ok: true, idea: plannerData.ideas[idx] });
+});
+
+// ── Delete idea
+app.delete("/api/planner/ideas/:id", (req, res) => {
+  if (!checkPassword(req)) return res.status(401).json({ error: "Unauthorized" });
+  const id = parseInt(req.params.id);
+  plannerData.ideas = plannerData.ideas.filter(i => i.id !== id);
+  savePlanner();
+  res.json({ ok: true });
+});
+
 // ===== SERVE FRONTEND =============================================
 // NOTE: This must come AFTER all API/page routes so Express serves
 // the React app for all non-API paths (including "/").
